@@ -27,30 +27,9 @@ _D = 'D'
 _K = 'K'
 
 def get_pos(pos):
-    if pos < 5:
-        col = 0
-    elif pos < 10:
-        col = 1
-    elif pos < 15:
-        col = 2
-    elif pos < 20:
-        col = 3
-    else:
-        col = 4
-
+    col = int(pos / 5)
     pos = pos % 5
-
-    if pos == 4: 
-        row = 0
-    elif pos == 3: 
-        row = 1
-    elif pos == 2: 
-        row = 2
-    elif pos == 1:
-        row = 3
-    else:
-        row = 4
-
+    row = abs(pos - 4)
     return row, col
 
 def draw_board(state):
@@ -86,7 +65,7 @@ def draw_board(state):
                 _SPACES + board[i][2] + _SPACES + \
                 _SPACES + board[i][3] + _SPACES + \
                 _SPACES + board[i][4] + _SPACES)
-    print('')
+    # print('')
    
     print(' ' + _SPACES, end='')
     for c in _CHARS:
