@@ -1,5 +1,5 @@
 from array import array
-import state
+from state import *
 """
 We've got 0-24 as guard positions and 25 as alive/dead
 and we've got 100-124 as dragon positions 125 as alive/dead.
@@ -21,7 +21,37 @@ This is how the board should be drawn.
 _SPACES = ' '
 _CHARS = [ 'A', 'B', 'C', 'D', 'E' ]
 _NUMBERS = [ '5', '4', '3', '2', '1' ]
-_BLANK = '.'
+_BLANK = ' '
+_G = 'G'
+_D = 'D'
+_K = 'K'
+
+def get_pos(pos):
+    if pos < 5:
+        col = 0
+    elif pos < 10:
+        col = 1
+    elif pos < 15:
+        col = 2
+    elif pos < 20:
+        col = 3
+    else:
+        col = 4
+
+    pos = pos % 5
+
+    if pos == 4: 
+        row = 0
+    elif pos == 3: 
+        row = 1
+    elif pos == 2: 
+        row = 2
+    elif pos == 1:
+        row = 3
+    else:
+        row = 4
+
+    return row, col
 
 def draw_board(state):
     """
@@ -29,13 +59,25 @@ def draw_board(state):
     :type state: State
     """
 
-    board = 5*[5*[_BLANK]]
+    board = []
+    for i in range(BOARD_NUM_ROWS):
+        board.append([])
+        for j in range(BOARD_NUM_COLS):
+            board[i].append(_BLANK)
     
-    king_pos = state.get_king_number(state)
-    guard_pos = state.get_live_guard_indices(state)
-    dragon_pos = state.get_live_dragon_indices(state)
-    
-    print(king_pos, guard_pos, dragon_pos)
+    king_pos = get_king_number(state)
+    row, col = get_pos(king_pos)
+    board[row][col] = _K
+
+    guard_inds = get_live_guards_indices(state)
+    for i in guard_inds:
+        row, col = get_pos(state[i])
+        board[row][col] = _G
+
+    dragon_inds = get_live_dragon_indices(state)
+    for i in dragon_inds:
+        row, col = get_pos(state[i] % 100)
+        board[row][col] = _D
 
     for i in range(len(board)):
         print(_NUMBERS[i] + _SPACES, end='')
@@ -49,7 +91,8 @@ def draw_board(state):
     print(' ' + _SPACES, end='')
     for c in _CHARS:
         print(_SPACES + c + _SPACES, end='')
+    print('')
 
-draw_board(state.create_state_from(state.TURN_MASK, state.DEFAULT_INITIAL_STATE))
+draw_board(DEFAULT_INITIAL_STATE)
     
     
