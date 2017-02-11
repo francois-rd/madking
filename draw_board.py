@@ -44,6 +44,8 @@ def get_pos(pos):
     """
     if pos > 100:
         pos = pos % 100
+    if pos >= 25:
+        return None
     col = int(pos / 5)
     pos = pos % 5
     row = abs(pos - 4)
@@ -72,7 +74,7 @@ def draw_board(state):
 
     dragon_inds = get_live_dragon_indices(state)
     for i in dragon_inds:
-        row, col = get_pos(state[i] % 100)
+        row, col = get_pos(state[i] % DRAGON_BASE)
         board[row][col] = _D
 
     for i in range(len(board)):
