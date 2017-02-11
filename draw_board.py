@@ -16,6 +16,14 @@ indices will be the dragons.
     A  B  C  D  E
 
 This is how the board should be drawn.
+Internally, the board is represented by converting the state (as a byte array),
+to a list of 5 lists of strings, as such:
+
+    0 : 0 1 2 3 4
+    1 : 0 1 2 3 4
+    2 : 0 1 2 3 4
+    4 : 0 1 2 3 4
+
 """
 
 _SPACES = ' '
@@ -27,22 +35,31 @@ _D = 'D'
 _K = 'K'
 
 def get_pos(pos):
+    """
+    Convert an integer 0-24 representing a place on the board into an integer 
+    which corresponds to the same location on a board with a "list of list"
+    representation.
+    :return: The offsets of the row and columns of the board location.
+    :rtype: (Int, Int)
+    """
+    if pos > 100:
+        pos = pos % 100
     col = int(pos / 5)
     pos = pos % 5
     row = abs(pos - 4)
-    return row, col
+    return (row, col)
 
 def draw_board(state):
     """
+    Draw the board from a state.
     :param state: A game state encoded in an array of 9 bytes.
     :type state: State
     """
-
     board = []
-    for i in range(BOARD_NUM_ROWS):
+    for row in range(BOARD_NUM_ROWS):
         board.append([])
-        for j in range(BOARD_NUM_COLS):
-            board[i].append(_BLANK)
+        for _ in range(BOARD_NUM_COLS):
+            board[row].append(_BLANK)
     
     king_pos = get_king_number(state)
     row, col = get_pos(king_pos)
