@@ -826,21 +826,23 @@ def is_valid_move(state, expanded_state, from_tile_idx, to_tile_idx):
 
 def successors(state, expanded_state):
     """
-    Returns a list of (successor_state, successor_expanded_state) pairs, one
-    pair for each successor of the given state.
+    Returns a list of (successor_state, successor_expanded_state, move) tuples,
+    one tuple for each successor of the given state, where 'move' is itself a
+    pair of (<from-tile-index>, <to-tile-index>).
 
     :param state: a compact state representation
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: a list of (successor_state, successor_expanded_state) pairs, one
-        pair for each successor of the given state
-    :rtype: list((array of bytes, dict(byte, char)))
+    :return: a list of (successor_state, successor_expanded_state, move)
+        tuples, one pair for each successor of the given state
+    :rtype: list((array of bytes, dict(byte, char), (byte, byte)))
     """
     all_successors = []
     for from_tile_idx, to_tile_idx in all_valid_moves(state, expanded_state):
         new_state = copy.deepcopy(state)
         new_expanded_state = create_expanded_state_representation(new_state)
         move(new_state, new_expanded_state, from_tile_idx, to_tile_idx)
-        all_successors.append((new_state, new_expanded_state))
+        all_successors.append((new_state, new_expanded_state,
+                               (from_tile_idx, to_tile_idx)))
     return all_successors
