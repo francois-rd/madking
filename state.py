@@ -49,6 +49,8 @@ NUM_META_STATE_BITS = 3
 TURN_MASK = 0b00000100
 WIN_MASK = 0b00000010
 WHO_WON_MASK = 0b00000001
+CHANGE_TO_KING_TURN_MASK = 0b00000100
+CHANGE_TO_DRAGON_TURN_MASK = 0b11111011
 ALL_META_STATE_MASK = TURN_MASK | WIN_MASK | WHO_WON_MASK
 KING = 'K'
 GUARD = 'G'
@@ -237,6 +239,19 @@ def player_turn(state):
     else:
         return KING_PLAYER
 
+def change_player_turn(state):
+    """
+    change the player's turn
+     If it's a king turn, then turn is changed to dragon's turn
+     If it's a player turn, then turn is changed to king's turn
+    :param state: a compact state representation
+    :type state: array of bytes
+    """
+    player_t = player_turn(state)
+    if player_t == KING_PLAYER:
+        state[0] = int(state[0]) & CHANGE_TO_DRAGON_TURN_MASK
+    else:
+        state[0] = int(state[0]) | CHANGE_TO_KING_TURN_MASK
 
 def is_winning_state(state):
     """
