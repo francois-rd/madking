@@ -1,4 +1,5 @@
 from array import array
+import copy
 
 """
 Index of each board tile, with the default position of each piece.
@@ -76,7 +77,6 @@ def get_default_game_start():
 
     :return: default initial state
     """
-    import copy
     return copy.deepcopy(DEFAULT_INITIAL_STATE)
 
 
@@ -758,7 +758,7 @@ def all_valid_moves(state, expanded_state):
 
 def is_terminal(state, expanded_state):
     """
-    Returns a pair (<is-terminal>, <why-is-terminal>). If it's a draw, then
+    Returns a pair (<is-terminal>, <utility>). If it's a draw, then
     returns (True, DRAW). If it's a win for the king player, then returns
     (True, KING_WIN). If it's a win for the dragon player, then returns
     (True, DRAGON_WIN). Otherwise, returns (False, 0).
@@ -767,7 +767,7 @@ def is_terminal(state, expanded_state):
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: a pair (<is-terminal>, <why-is-terminal>)
+    :return: a pair (<is-terminal>, <utility>)
     :rtype: (bool, int)
     """
 
@@ -810,15 +810,37 @@ def is_valid_move(state, expanded_state, from_tile_idx, to_tile_idx):
     if player_turn(state) == KING_PLAYER:
         if at_from_tile == KING:
             return (from_tile_idx, to_tile_idx) in \
-                _all_valid_moves_for_king(expanded_state, from_tile_idx)
+                   _all_valid_moves_for_king(expanded_state, from_tile_idx)
         elif at_from_tile == GUARD:
             return (from_tile_idx, to_tile_idx) in \
-                _all_valid_moves_for_guard(expanded_state, from_tile_idx)
+                   _all_valid_moves_for_guard(expanded_state, from_tile_idx)
         else:  # Because the tile contains a dragon.
             return False
     else:  # It's DRAGON_PLAYER's turn.
         if at_from_tile == DRAGON:
             return (from_tile_idx, to_tile_idx) in \
-                _all_valid_moves_for_dragon(expanded_state, from_tile_idx)
+                   _all_valid_moves_for_dragon(expanded_state, from_tile_idx)
         else:  # Because the tile contains a king or a guard.
             return False
+
+
+def successors(state, expanded_state):
+    """
+    Returns a list of (successor_state, successor_expanded_state) pairs, one
+    pair for each successor of the given state.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: a list of (successor_state, successor_expanded_state) pairs, one
+        pair for each successor of the given state
+    :rtype: list((array of bytes, dict(byte, char)))
+    """
+    all_successors = []
+    for from_tile_idx, to_tile_idx in all_valid_moves(state, expanded_state):
+        new_state = copy.deepcopy(state)
+        new_expanded_state = create_expanded_state_representation(new_state)
+        move(new_state, new_expanded_state, from_tile_idx, to_tile_idx)
+        all_successors.append((new_state, new_expanded_state))
+    return all_successors
