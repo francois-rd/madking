@@ -847,8 +847,14 @@ def successors(state, expanded_state):
                                (from_tile_idx, to_tile_idx)))
     return all_successors
 
+
 def hash_state(state):
-    string = ""
-    for b in state:
-        string += str(b)
-    return string
+    """
+    Returns a hash string of the given state.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :return: a hash string of the given state
+    :rtype: string
+    """
+    return ''.join(str(b) for b in state)
