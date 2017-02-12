@@ -1,14 +1,16 @@
 from state import *
+from evaluations import *
 
 table = dict() # mapping between states and (utility, move) pairs
+depth_limit = 100
 
-def minimax(state, expanded_state):
+def minimax(state, expanded_state, depth):
     """
     Perform minimax search.
     :param state: the current node in the search
     :type state: array of bytes
     """
-    global table
+    global table, depth_limit
     
     print("New state!")
 
@@ -20,9 +22,17 @@ def minimax(state, expanded_state):
         print("Found terminal state!")
         utility = who_won
         move = None
+    elif depth == depth_limit:
+        print(depth_limit)
+        if player_turn(state) == KING_PLAYER:
+            utility = simple_eval(state)
+        else:
+            utility = simple_eval(state)
+        move = None
     else:
         print("Getting successors!")
-        vs = [(minimax(state, expanded_state)[0], move) for state, expanded_state, move in successors(state, expanded_state)]
+        vs = [(minimax(state, expanded_state, depth+1)[0], move) for state, expanded_state, move in successors(state, expanded_state)]
+        print(vs)
         if player_turn(state) == KING_PLAYER:
             print("King's turn!")
             utility, move = arg_max(vs)
@@ -56,5 +66,5 @@ def arg_min(vs):
 if __name__ == "__main__":
     state = get_default_game_start()
     expanded_state = create_expanded_state_representation(state)
-    u, m = minimax(state, expanded_state)
+    u, m = minimax(state, expanded_state, 0)
     print("Final:", u, m)
