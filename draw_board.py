@@ -1,5 +1,5 @@
-from array import array
 from state import *
+
 """
 We've got 0-24 as guard positions and 25 as alive/dead
 and we've got 100-124 as dragon positions 125 as alive/dead.
@@ -27,12 +27,10 @@ to a list of 5 lists of strings, as such:
 """
 
 _SPACES = ' '
-_CHARS = [ 'A', 'B', 'C', 'D', 'E' ]
-_NUMBERS = [ '5', '4', '3', '2', '1' ]
+_CHARS = ['A', 'B', 'C', 'D', 'E']
+_NUMBERS = ['5', '4', '3', '2', '1']
 _BLANK = ' '
-_G = 'G'
-_D = 'D'
-_K = 'K'
+
 
 def get_pos(pos):
     """
@@ -42,14 +40,14 @@ def get_pos(pos):
     :return: The offsets of the row and columns of the board location.
     :rtype: (Int, Int)
     """
-    if pos > 100:
-        pos = pos % 100
-    if pos >= 25:
+    pos %= DRAGON_BASE
+    if pos == DEAD:
         return None
-    col = int(pos / 5)
-    pos = pos % 5
+    col = pos // BOARD_NUM_RANKS
+    pos %= BOARD_NUM_RANKS
     row = abs(pos - 4)
-    return (row, col)
+    return row, col
+
 
 def draw_board(state):
     """
@@ -58,39 +56,36 @@ def draw_board(state):
     :type state: State
     """
     board = []
-    for row in range(BOARD_NUM_ROWS):
+    for row in range(BOARD_NUM_RANKS):
         board.append([])
-        for _ in range(BOARD_NUM_COLS):
+        for _ in range(BOARD_NUM_FILES):
             board[row].append(_BLANK)
-    
-    king_pos = get_king_number(state)
+
+    king_pos = get_king_tile_index(state)
     row, col = get_pos(king_pos)
-    board[row][col] = _K
+    board[row][col] = KING
 
-    guard_inds = get_live_guards_indices(state)
-    for i in guard_inds:
-        row, col = get_pos(state[i])
-        board[row][col] = _G
+    for _, guard_idx in get_live_guards_enumeration(state):
+        row, col = get_pos(guard_idx)
+        board[row][col] = GUARD
 
-    dragon_inds = get_live_dragon_indices(state)
-    for i in dragon_inds:
-        row, col = get_pos(state[i] % DRAGON_BASE)
-        board[row][col] = _D
+    for _, dragon_idx in get_live_dragon_enumeration(state):
+        row, col = get_pos(dragon_idx - DRAGON_BASE)
+        board[row][col] = DRAGON
 
     for i in range(len(board)):
         print(_NUMBERS[i] + _SPACES, end='')
-        print(  _SPACES + board[i][0] + _SPACES + \
-                _SPACES + board[i][1] + _SPACES + \
-                _SPACES + board[i][2] + _SPACES + \
-                _SPACES + board[i][3] + _SPACES + \
-                _SPACES + board[i][4] + _SPACES)
+        print(_SPACES + board[i][0] + _SPACES +
+              _SPACES + board[i][1] + _SPACES +
+              _SPACES + board[i][2] + _SPACES +
+              _SPACES + board[i][3] + _SPACES +
+              _SPACES + board[i][4] + _SPACES)
     # print('')
-   
+
     print(' ' + _SPACES, end='')
     for c in _CHARS:
         print(_SPACES + c + _SPACES, end='')
     print('')
 
+
 draw_board(DEFAULT_INITIAL_STATE)
-    
-    
