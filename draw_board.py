@@ -3,13 +3,13 @@ from state import *
 """
 This is how the board should be drawn.
 
-5   .  .  K  .  .
-4   .  G  G  G  .
-3   .  .  .  .  .
-2   D  D  D  D  D
-1   .  .  .  .  .
+5  . . K . .
+4  . G G G .
+3  . . . . .
+2  D D D D D
+1  . . . . .
 
-    A  B  C  D  E
+   A B C D E
 
 Internally, the board is represented by converting the state (as a byte array),
 to a list of 5 lists of strings, as such:
@@ -21,7 +21,6 @@ to a list of 5 lists of strings, as such:
 
 """
 
-_SPACE = ' '
 _FILE = ['A', 'B', 'C', 'D', 'E']
 _RANK = ['5', '4', '3', '2', '1']
 
@@ -61,15 +60,15 @@ def draw_board(state):
         board[row][col] = DRAGON
 
     for i, rank in enumerate(board):
-        print(_RANK[i] + _SPACE, end='')
+        print(_RANK[i] + OFF_THE_BOARD, end='')
         for tile_content in rank:
-            print(_SPACE + tile_content, end='')
+            print(OFF_THE_BOARD + tile_content, end='')
         print('')
     print('')
 
-    print(_SPACE + _SPACE, end='')
+    print(OFF_THE_BOARD + OFF_THE_BOARD, end='')
     for f in _FILE:
-        print(_SPACE + f, end='')
+        print(OFF_THE_BOARD + f, end='')
     print('')
 
 

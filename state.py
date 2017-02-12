@@ -3,11 +3,11 @@ from array import array
 """
 Index of each board tile, with the default position of each piece.
 
-5   4  9  K 19 24
-4   3  G  G  G 23
-3   2  7 12 17 22
-2   D  D  D  D  D
-1   0  5 10 15 20
+5  04 09 14 19 24     . . K . .
+4  03 08 13 18 23     . G G G .
+3  02 07 12 17 22     . . . . .
+2  01 06 11 16 21     D D D D D
+1  00 05 10 15 20     . . . . .
 
     A  B  C  D  E
 
