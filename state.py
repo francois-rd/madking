@@ -475,6 +475,10 @@ def check_below(expanded_state, tile_idx, tile_contents=None):
         return False, False, idx_below, OFF_THE_BOARD
 
 
+def is_king_surrounded(expanded_state, king_tile_index):
+    pass
+
+
 def is_guard_surrounded(expanded_state, guard_idx):
     """
     Returns True iff the guard at the given tile index is surrounded by at
@@ -744,15 +748,11 @@ def all_valid_moves(state, expanded_state):
         all_moves.extend(_all_valid_moves_for_king(expanded_state,
                                                    get_king_tile_index(state)))
         for _, idx in get_live_guards_enumeration(state):
-            if idx < DEAD:  # If it's a live guard.
-                all_moves.extend(_all_valid_moves_for_guard(expanded_state,
-                                                            idx))
+            all_moves.extend(_all_valid_moves_for_guard(expanded_state, idx))
     else:  # It's DRAGON_PLAYER's turn.
-        for _, idx in get_live_guards_enumeration(state):
-            if idx > DEAD:  # If it's a live dragon.
-                all_moves.extend(
-                    _all_valid_moves_for_dragon(expanded_state,
-                                                idx - DRAGON_BASE))
+        for _, idx in get_live_dragon_enumeration(state):
+            all_moves.extend(_all_valid_moves_for_dragon(expanded_state,
+                                                         idx - DRAGON_BASE))
     return all_moves
 
 
