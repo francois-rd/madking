@@ -23,6 +23,8 @@ to a list of 5 lists of strings, as such:
 
 _FILE = ['A', 'B', 'C', 'D', 'E']
 _RANK = ['5', '4', '3', '2', '1']
+C_RED = '\033[91m'
+C_GREEN = '\33[32m'
 
 
 def get_pos(tile_idx):
@@ -42,12 +44,20 @@ def get_pos(tile_idx):
 def draw_board(state):
     """
     Draws the board from the given state representation to standard output.
+    Board is green coloured, if it's KING turn
+    Board is red coloured, if it's DRAGON turn
 
     :param state: a compact state representation
     :type state: array of bytes
     """
-    board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
 
+    color = ''
+    if player_turn == KING:
+        color = C_GREEN
+    else:
+        color = C_RED
+
+    board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
     row, col = get_pos(get_king_tile_index(state))
     board[row][col] = KING
 
@@ -60,15 +70,15 @@ def draw_board(state):
         board[row][col] = DRAGON
 
     for i, rank in enumerate(board):
-        print(_RANK[i] + OFF_THE_BOARD, end='')
+        print(color + _RANK[i] + OFF_THE_BOARD, end='')
         for tile_content in rank:
-            print(OFF_THE_BOARD + tile_content, end='')
+            print(color + OFF_THE_BOARD + tile_content, end='')
         print('')
     print('')
 
     print(OFF_THE_BOARD + OFF_THE_BOARD, end='')
     for f in _FILE:
-        print(OFF_THE_BOARD + f, end='')
+        print(color + OFF_THE_BOARD + f, end='')
     print('')
 
 
