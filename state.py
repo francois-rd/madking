@@ -239,6 +239,7 @@ def player_turn(state):
     else:
         return KING_PLAYER
 
+
 def change_player_turn(state):
     """
     change the player's turn
