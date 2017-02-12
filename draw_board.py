@@ -50,8 +50,6 @@ def draw_board(state):
     :param state: a compact state representation
     :type state: array of bytes
     """
-
-    color = ''
     if player_turn == KING:
         color = C_GREEN
     else:
