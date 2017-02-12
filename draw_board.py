@@ -1,4 +1,6 @@
 from state import *
+from sys import stdout
+
 """
 This is how the board should be drawn.
 
@@ -20,10 +22,12 @@ to a list of 5 lists of strings, as such:
 
 """
 
+_SPACE = ' '
 _FILE = ['A', 'B', 'C', 'D', 'E']
 _RANK = ['5', '4', '3', '2', '1']
-C_RED = '\033[91m'
-C_GREEN = '\33[32m'
+_C_RED = '\033[91m'
+_C_GREEN = '\33[32m'
+_C_END = '\033[0m'
 
 
 def get_pos(tile_idx):
@@ -49,11 +53,14 @@ def draw_board(state):
     :param state: a compact state representation
     :type state: array of bytes
     """
-    player_t = player_turn(state)
-    if player_t == KING_PLAYER:
-        color = C_GREEN
+    if player_turn(state) == KING_PLAYER:
+        print("It's the king player's turn:")
+        if stdout.isatty():
+            print(_C_GREEN, end='')
     else:
-        color = C_RED
+        print("It's the dragon player's turn:")
+        if stdout.isatty():
+            print(_C_RED, end='')
 
     board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
     row, col = get_pos(get_king_tile_index(state))
@@ -68,46 +75,75 @@ def draw_board(state):
         board[row][col] = DRAGON
 
     for i, rank in enumerate(board):
-        print(color + _RANK[i] + OFF_THE_BOARD, end='')
+        print(_RANK[i] + OFF_THE_BOARD, end='')
         for tile_content in rank:
-            print(color + OFF_THE_BOARD + tile_content, end='')
+            print(_SPACE + tile_content, end='')
         print('')
     print('')
 
     print(OFF_THE_BOARD + OFF_THE_BOARD, end='')
     for f in _FILE:
-        print(color + OFF_THE_BOARD + f, end='')
+        print(OFF_THE_BOARD + f, end='')
     print('')
+    if stdout.isatty():
+        print(_C_END, end='')
     print()
+
+
+def parse_move(str_move):
+    """
+    Parses a move given in a format similar to 'A2B3', which means "move the
+    piece at tile 'A2' to tile 'B3'", into a <from-tile-index> and a
+    <to-tile-index>. Returns the (True, <from-tile-index>, <to-tile-index>) if
+    the move is correctly formatted, and (False, -1, -1) otherwise.
+
+    :param str_move: a move given in a format similar to 'A2B3'
+    :type str_move: string
+    :return: the (True, <from-tile-index>, <to-tile-index>) if the move is
+        correctly formatted, and (False, -1, -1) otherwise
+    :rtype: (bool, int, int)
+    """
+    if len(str_move) != 4 or \
+            str_move[0] not in _FILE or str_move[1] not in _RANK or \
+            str_move[2] not in _FILE or str_move[3] not in _RANK:
+        return False, -1, -1
+    return True, tile_index(str_move[0:2]), tile_index(str_move[2:4])
 
 
 def run_the_game_simulation(state, moves):
     """
-    Outputs, and execute all the moves given in the moves, and print them on
-    console.
-    moves list should be of format, `A2B3` explaining move the piece at A2 to B3
-    It is assumed list will have moves in order, such that it starts from dragon
-    turn, followed by king's turn and cycle keeps on going.
-    Print the big message if the move is not valid
-    :param state: state on which moves will be executed
-    :param moves: a list of all the moves needed to be executed
-    :type: list
+    Executes all moves in the given list of moves, while alternating player
+    turns, and prints the resulting boards and other game state information to
+    standard output. Each move in the list should be in a format similar to
+    'A2B3', which means "move the piece at tile 'A2' to tile 'B3'". Print an
+    error message if the move is not valid.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param moves: a list moves to execute
+    :type moves: list(string)
     """
-    print("Game is starting like this")
+    print("Game is starting like this:")
+    print('')
     draw_board(state)
-    expand_state = expand_state_representation(state)
+    expanded_state = create_expanded_state_representation(state)
     for m in moves:
-        from_tile_index = tile_index(m[0:2])
-        end_tile_index = tile_index(m[2:4])
-        if not is_valid_move(expand_state, from_tile_index, end_tile_index):
-            print("Bad happened at move " + m)
-            print("Stopping the simulation")
+        correct_form, from_tile_idx, to_tile_idx = parse_move(m)
+        if not correct_form:
+            print("Wrong move format:", m)
+            print("Stopping the simulation.")
             break
-        move(state, expand_state, from_tile_index,
-             end_tile_index)
+        if not is_valid_move(state, expanded_state, from_tile_idx,
+                             to_tile_idx):
+            print("Bad move:", m)
+            print("Stopping the simulation.")
+            break
+        print("The move is:", m)
+        move(state, expanded_state, from_tile_idx, to_tile_idx)
+        print('')
+        print('')
         draw_board(state)
-        change_player_turn(state)
-        terminal, status = is_terminal(state, expand_state)
+        terminal, status = is_terminal(state, expanded_state)
         if terminal:
             print(status)
             break
@@ -115,4 +151,4 @@ def run_the_game_simulation(state, moves):
 
 if __name__ == "__main__":
     game_state = get_default_game_start()
-    run_the_game_simulation(game_state, ['C2C3', 'D4E4','E2E3', 'C5D5'])
+    run_the_game_simulation(game_state, ['C2C3', 'D4E4', 'E2E3', 'C5D5'])

@@ -1,5 +1,4 @@
 from array import array
-import copy
 
 """
 Index of each board tile, with the default position of each piece.
@@ -50,8 +49,7 @@ NUM_META_STATE_BITS = 3
 TURN_MASK = 0b00000100
 WIN_MASK = 0b00000010
 WHO_WON_MASK = 0b00000001
-CHANGE_TO_KING_TURN_MASK = 0b00000100
-CHANGE_TO_DRAGON_TURN_MASK = 0b11111011
+TOGGLE_TURN_MASK = 0b00000100
 ALL_META_STATE_MASK = TURN_MASK | WIN_MASK | WHO_WON_MASK
 KING = 'K'
 GUARD = 'G'
@@ -74,10 +72,13 @@ _ord_1 = ord('1')
 
 def get_default_game_start():
     """
-    This returns the defualt initial game state of the Madking
-    :return: initial state
+    Returns the default initial game state.
+
+    :return: default initial state
     """
+    import copy
     return copy.deepcopy(DEFAULT_INITIAL_STATE)
+
 
 def create_state_from(who_s_turn, initial_positions):
     """
@@ -102,7 +103,7 @@ def create_state_from(who_s_turn, initial_positions):
     return array('B', initial_positions)
 
 
-def expand_state_representation(state):
+def create_expanded_state_representation(state):
     """
     Given a compact state array, returns a dict where the keys are the board
     tile indices (0-24), and the values are characters representing the type of
@@ -248,19 +249,17 @@ def player_turn(state):
         return KING_PLAYER
 
 
-def change_player_turn(state):
+def _change_player_turn(state):
     """
-    change the player's turn
-     If it's a king turn, then turn is changed to dragon's turn
-     If it's a player turn, then turn is changed to king's turn
+    Changes the player's turn. If it's the king player's turn, then turn is
+    changed to the dragon player's turn. If it's the dragon player's turn, then
+    turn is changed to the king player's turn.
+
     :param state: a compact state representation
     :type state: array of bytes
     """
-    player_t = player_turn(state)
-    if player_t == KING_PLAYER:
-        state[0] = int(state[0]) & CHANGE_TO_DRAGON_TURN_MASK
-    else:
-        state[0] = int(state[0]) | CHANGE_TO_KING_TURN_MASK
+    state[0] ^= TOGGLE_TURN_MASK
+
 
 def is_winning_state(state):
     """
@@ -536,7 +535,11 @@ def move(state, expanded_state, from_tile_idx, to_tile_idx):
     surrounded are converted to dragons. This includes guards captured by
     propagation (one guard is converted to a dragon, which causes another guard
     to be surrounded by at least 3 dragons due to the position of the newly-
-    converted dragon). *** Assumes the move is valid. Does NOT check if the
+    converted dragon).
+
+    After the move is performed, the player's turn is changed.
+
+    *** Assumes the move is valid. Does NOT check if the
     resulting condition is terminal (i.e. a win for one player, or a draw for
     both). ***
 
@@ -587,6 +590,8 @@ def move(state, expanded_state, from_tile_idx, to_tile_idx):
                 break
         if not converted_a_guard:
             break
+    # After the move, we toggle the player's turn.
+    _change_player_turn(state)
 
 
 def _all_orthogonal_moves(expanded_state, tile_idx):
@@ -707,12 +712,14 @@ def _all_valid_moves_for_dragon(expanded_state, tile_idx):
     moves = _all_orthogonal_moves(expanded_state, tile_idx)
     # Moves doesn't contain possible diagonal moves, so check those and add
     # them in if applicable.
-    _, _, left_idx, _ = moves['l']
-    moves['al'] = check_above(expanded_state, left_idx, [EMPTY])
-    moves['bl'] = check_below(expanded_state, left_idx, [EMPTY])
-    _, _, right_idx, _ = moves['r']
-    moves['ar'] = check_above(expanded_state, right_idx, [EMPTY])
-    moves['br'] = check_below(expanded_state, right_idx, [EMPTY])
+    on_board, _, left_idx, _ = moves['l']
+    if on_board:
+        moves['al'] = check_above(expanded_state, left_idx, [EMPTY])
+        moves['bl'] = check_below(expanded_state, left_idx, [EMPTY])
+    on_board, _, right_idx, _ = moves['r']
+    if on_board:
+        moves['ar'] = check_above(expanded_state, right_idx, [EMPTY])
+        moves['br'] = check_below(expanded_state, right_idx, [EMPTY])
     return [(tile_idx, to_tile_idx) for _, is_empty, to_tile_idx, _ in
             moves.values() if is_empty]
 
@@ -779,34 +786,39 @@ def is_terminal(state, expanded_state):
     return False, 0
 
 
-def is_valid_move(expanded_state,from_tile_index, to_tile_index):
+def is_valid_move(state, expanded_state, from_tile_idx, to_tile_idx):
     """
+    Returns True iff moving the piece on the 'from_tile_idx' tile to the
+    'to_file_idx' tile is a valid move, given who's turn it is. *** Assumes the
+    given tile indices are valid (i.e. have range 0 to 24). ***
 
+    :param state: a compact state representation
+    :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :param from_tile_index: from where the piece is moved
-    :param to_tile_index: to where piece is moved
-    :return: true if move is valid, otherwise false
+    :param from_tile_idx: tile index (0-24) corresponding to a board position
+    :type from_tile_idx: byte
+    :param to_tile_idx: tile index (0-24) corresponding to a board position
+    :type to_tile_idx: byte
+    :return: True iff the move is valid
+    :rtype: bool
     """
-    at_from_tile = expanded_state[from_tile_index]
-    at_to_tile = expanded_state[to_tile_index]
-    if at_from_tile == '.':
+    at_from_tile = expanded_state[from_tile_idx]
+    if at_from_tile == EMPTY:
         return False
 
-    if at_to_tile == KING:
-        if (from_tile_index, to_tile_index) not in \
-                _all_valid_moves_for_king(expanded_state, at_to_tile):
+    if player_turn(state) == KING_PLAYER:
+        if at_from_tile == KING:
+            return (from_tile_idx, to_tile_idx) in \
+                _all_valid_moves_for_king(expanded_state, from_tile_idx)
+        elif at_from_tile == GUARD:
+            return (from_tile_idx, to_tile_idx) in \
+                _all_valid_moves_for_guard(expanded_state, from_tile_idx)
+        else:  # Because the tile contains a dragon.
             return False
-    elif at_to_tile == GUARD:
-        if (from_tile_index, to_tile_index) not in \
-                _all_valid_moves_for_guard(expanded_state, at_to_tile):
+    else:  # It's DRAGON_PLAYER's turn.
+        if at_from_tile == DRAGON:
+            return (from_tile_idx, to_tile_idx) in \
+                _all_valid_moves_for_dragon(expanded_state, from_tile_idx)
+        else:  # Because the tile contains a king or a guard.
             return False
-    elif at_to_tile == DRAGON:
-        if (from_tile_index, to_tile_index) not in \
-                _all_valid_moves_for_dragon(expanded_state, at_to_tile):
-            return False
-
-    return True
-
-
-
