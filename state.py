@@ -55,6 +55,10 @@ GUARD = 'G'
 DRAGON = 'D'
 EMPTY = '.'
 OFF_THE_BOARD = ' '
+KING_WIN = 1
+DRAGON_WIN = -1
+DRAW = 0
+
 
 DEFAULT_KING_PLUS_META_STATE_BYTE = 0b01110000
 DEFAULT_INITIAL_STATE = array('B', [DEFAULT_KING_PLUS_META_STATE_BYTE,
@@ -720,3 +724,35 @@ def all_valid_moves(state, expanded_state):
                     _all_valid_moves_for_dragon(expanded_state,
                                                 idx - DRAGON_BASE))
     return all_moves
+
+
+def is_terminal(state, expanded_state):
+    """
+    Returns a tuple (isTerminal, why terminal), If it's a draw then
+    ( True, DRAW) , if king's win (True, KING), if Dragon is a
+    winner (True, Dragon) otherwise it returns (False, 0)
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: a tuple of which consists of isTerminal and if it is then why if it is
+    :rtype: tuple
+    """
+
+    if len(get_live_dragon_enumeration(state)) == 0:
+        return True, KING
+    king_tile_index = get_king_tile_index(state)
+    if king_tile_index % 5 == 0:
+        return True, KING
+    if len(_all_valid_moves_for_king(expanded_state, king_tile_index)) == 0:
+        if king_tile_index in [0, BOARD_NUM_RANKS - 1,
+                               (BOARD_NUM_RANKS * BOARD_NUM_FILES) - 1,
+                               BOARD_NUM_RANKS * (BOARD_NUM_FILES - 1)]:
+            return True, DRAW
+        else:
+            return True, DRAGON
+
+    return False, 0
+
+
+
