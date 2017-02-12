@@ -846,3 +846,9 @@ def successors(state, expanded_state):
         all_successors.append((new_state, new_expanded_state,
                                (from_tile_idx, to_tile_idx)))
     return all_successors
+
+def hash_state(state):
+    string = ""
+    for b in state:
+        string += str(b)
+    return string
