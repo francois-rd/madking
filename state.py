@@ -1,4 +1,5 @@
 from array import array
+import copy
 
 """
 Index of each board tile, with the default position of each piece.
@@ -70,6 +71,13 @@ DEFAULT_INITIAL_STATE = array('B', [DEFAULT_KING_PLUS_META_STATE_BYTE,
 _ord_a = ord('A')
 _ord_1 = ord('1')
 
+
+def get_default_game_start():
+    """
+    This returns the defualt initial game state of the Madking
+    :return: initial state
+    """
+    return copy.deepcopy(DEFAULT_INITIAL_STATE)
 
 def create_state_from(who_s_turn, initial_positions):
     """
@@ -769,3 +777,36 @@ def is_terminal(state, expanded_state):
         else:
             return True, DRAGON_WIN
     return False, 0
+
+
+def is_valid_move(expanded_state,from_tile_index, to_tile_index):
+    """
+
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param from_tile_index: from where the piece is moved
+    :param to_tile_index: to where piece is moved
+    :return: true if move is valid, otherwise false
+    """
+    at_from_tile = expanded_state[from_tile_index]
+    at_to_tile = expanded_state[to_tile_index]
+    if at_from_tile == '.':
+        return False
+
+    if at_to_tile == KING:
+        if (from_tile_index, to_tile_index) not in \
+                _all_valid_moves_for_king(expanded_state, at_to_tile):
+            return False
+    elif at_to_tile == GUARD:
+        if (from_tile_index, to_tile_index) not in \
+                _all_valid_moves_for_guard(expanded_state, at_to_tile):
+            return False
+    elif at_to_tile == DRAGON:
+        if (from_tile_index, to_tile_index) not in \
+                _all_valid_moves_for_dragon(expanded_state, at_to_tile):
+            return False
+
+    return True
+
+
+
