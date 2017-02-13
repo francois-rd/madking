@@ -53,12 +53,13 @@ def draw_board(state):
     :param state: a compact state representation
     :type state: array of bytes
     """
+    board_str = ''
     if player_turn(state) == KING_PLAYER:
-        print("It's the king player's turn:")
+        board_str += "It's the king player's turn:\n\n"
         if stdout.isatty():
             print(_C_GREEN, end='')
     else:
-        print("It's the dragon player's turn:")
+        board_str += "It's the dragon player's turn:\n\n"
         if stdout.isatty():
             print(_C_RED, end='')
 
@@ -75,19 +76,21 @@ def draw_board(state):
         board[row][col] = DRAGON
 
     for i, rank in enumerate(board):
-        print(_RANK[i] + OFF_THE_BOARD, end='')
+        board_str += _RANK[i] + OFF_THE_BOARD
         for tile_content in rank:
-            print(_SPACE + tile_content, end='')
-        print('')
-    print('')
+            board_str += _SPACE + tile_content
+        board_str += '\n'
+    board_str += '\n'
 
-    print(OFF_THE_BOARD + OFF_THE_BOARD, end='')
+    board_str += OFF_THE_BOARD + OFF_THE_BOARD
     for f in _FILE:
-        print(OFF_THE_BOARD + f, end='')
-    print('')
+        board_str += OFF_THE_BOARD + f
+    board_str += '\n' 
     if stdout.isatty():
-        print(_C_END, end='')
-    print()
+        board_str += _C_END
+    board_str += '\n'
+
+    print(board_str)
 
 
 def parse_move(str_move):
