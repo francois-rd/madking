@@ -1,70 +1,72 @@
 from state import *
-from evaluations import *
 
-table = dict() # mapping between states and (utility, move) pairs
-depth_limit = 100
+table = dict()  # mapping between states and (utility, move) pairs
+DEFAULT_DEPTH_LIMIT = 100
 
-def minimax(state, expanded_state, depth):
+
+def minimax(state, expanded_state, evaluate, remaining_depth):
     """
-    Perform minimax search.
+    Performs minimax search, returning a (<utility>, <move>) pair.
+
     :param state: the current node in the search
     :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param evaluate: a function taking a state and an expanded state and
+        returning a heuristic estimate of the state's utility for the current
+        player
+    :type evaluate: (array of bytes, dict(byte, char)) => numeric
+    :param remaining_depth: how many more plies to visit recursively (i.e. what
+        is the (maximum) remaining depth of the minimax recursive call tree);
+        when this value hits 0, if the state at that depth is not a terminal
+        state, the 'evaluate' function is applied to the state, instead of
+        performing a recursive call to minimax
+    :type remaining_depth: int
+    :return: a (<utility>, <move>) pair
+    :rtype: (numeric, (<from-tile-index>, <to-tile-index>))
     """
-    global table, depth_limit
-    
-    print("New state!")
+    global table
 
-    if hash_state(state) in table:
+    print("New state with remaining depth", remaining_depth)
+
+    # TODO: what about hash collisions?
+    # TODO: what about checking the depth in the table... will need a fancier
+    #       table eventually.
+    hash_string = hash_state(state)
+    if hash_string in table:
         print("In table!")
-        return table[hash_state(state)]
-    is_term, who_won = is_terminal(state, expanded_state)
+        return table[hash_string]
+
+    is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         print("Found terminal state!")
-        utility = who_won
-        move = None
-    elif depth == depth_limit:
-        print(depth_limit)
-        if player_turn(state) == KING_PLAYER:
-            utility = simple_eval(state)
-        else:
-            utility = simple_eval(state)
-        move = None
+        best_move = None
+    elif remaining_depth == 0:
+        utility = evaluate(state, expanded_state)
+        best_move = None
     else:
         print("Getting successors!")
-        vs = [(minimax(state, expanded_state, depth+1)[0], move) for state, expanded_state, move in successors(state, expanded_state)]
+        vs = [(minimax(new_state, new_expanded_state, evaluate,
+                       remaining_depth - 1)[0], new_move) for
+              new_state, new_expanded_state, new_move in
+              successors(state, expanded_state)]
         print(vs)
         if player_turn(state) == KING_PLAYER:
             print("King's turn!")
-            utility, move = arg_max(vs)
-        elif player_turn(state) == DRAGON_PLAYER:
+            utility, best_move = max(vs, key=lambda i: i[0])
+        else:
             print("Dragons turn!")
-            utility, move = arg_min(vs)
+            utility, best_move = min(vs, key=lambda i: i[0])
     print("Putting it in the table!")
-    table[hash_state(state)] = (utility, move)
-    return utility, move
+    table[hash_string] = (utility, best_move)
+    return utility, best_move
 
-def arg_max(vs):
-    """
-    Get the pair (utility, move) with the largest utility value.
-    :param vs: A list of utility, move pairs.
-    :type vs: [(int, (int, int))] (whatever a move is)
-    :return: The (utility, move) tuple with the largest utility in the list.
-    :rtype: (int, (int, int))
-    """
-    maxv, maxm = max(vs, key=lambda i:i[0])
-
-def arg_min(vs):
-    """
-    Get the pair (utility, move) with the smallest utility value.
-    :param vs: A list of utility, move pairs.
-    :type vs: [(int, (int, int))] (whatever a move is)
-    :return: The (utility, move) tuple with the smallest utility in the list.
-    :rtype: (int, (int, int))
-    """
-    minv, minm = min(vs, key=lambda i:i[0])
 
 if __name__ == "__main__":
-    state = get_default_game_start()
-    expanded_state = create_expanded_state_representation(state)
-    u, m = minimax(state, expanded_state, 0)
+    from evaluations import simple_eval
+
+    game_state = get_default_game_start()
+    game_expanded_state = create_expanded_state_representation(game_state)
+    u, m = minimax(game_state, game_expanded_state, simple_eval,
+                   DEFAULT_DEPTH_LIMIT)
     print("Final:", u, m)
