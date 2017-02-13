@@ -19,7 +19,9 @@ def simple_eval(state, expanded_state):
     dragons = len(get_live_dragon_enumeration(state))
     guards = len(get_live_guards_enumeration(state))
     # TODO: so... the utility of the default initial state is negative for the
-    #       king and positive for the dragon? It's not wrong, but it's weird.
+    #       king and positive for the dragon? This is wrong. The evaluation
+    #       function should evaluate how good the board position is from player
+    #       1's (the king's) point of view, regardless of who's turn it is.
     if player_turn(state) == KING_PLAYER:
         return guards - dragons
     else:
