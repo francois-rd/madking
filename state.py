@@ -475,7 +475,50 @@ def check_below(expanded_state, tile_idx, tile_contents=None):
         return False, False, idx_below, OFF_THE_BOARD
 
 
-def is_king_surrounded(expanded_state, king_tile_index):
+# TODO: no yet implemented! Don't use!
+def is_king_captured(expanded_state, king_tile_index):
+    _, dragon_left, left_idx, at_left = check_left(expanded_state,
+                                                   king_tile_index, [DRAGON])
+    _, dragon_right, right_idx, at_right = check_right(expanded_state,
+                                                       king_tile_index,
+                                                       [DRAGON])
+    _, dragon_above, above_idx, at_above = check_above(expanded_state,
+                                                       king_tile_index,
+                                                       [DRAGON])
+    _, dragon_below, below_idx, at_below = check_below(expanded_state,
+                                                       king_tile_index,
+                                                       [DRAGON])
+    # TODO: does it matter if it's the king player's turn or not? Yes!
+    if dragon_left and dragon_above and dragon_right:
+        some_dragon_can_be_captured = \
+            is_dragon_surrounded(expanded_state, left_idx) or \
+            is_dragon_surrounded(expanded_state, above_idx) or \
+            is_dragon_surrounded(expanded_state, right_idx)
+        if dragon_below:
+            # TODO: what if any of these dragons can get captured by a guard?
+            # Then, the king could escape by jumping over the guard that moves
+            # into the tile where the dragon was, so long as the tile beyond
+            # the jumped-over guard is free. But this would take an extra turn.
+            # The game rules aren't clear about what happens in this case, i.e.
+            # because the king COULD escape by moving (on the next turn), he
+            # isn't truly caught.... this would be weird though!
+            return True
+        elif at_below == EMPTY:
+            # TODO: what if the tile below is ALSO surrounded by 3 dragons
+            # (e.g. if there are 6 dragons because one guard got captured)?
+            # Again, the rules aren't clear.
+            return False
+        elif at_below == OFF_THE_BOARD:
+            # Check if any of the dragons can be captured by a guard.
+            # This only applies if it's the king's turn.
+            return not some_dragon_can_be_captured
+        else:  # Must be a guard below.
+            if some_dragon_can_be_captured:
+                return False
+            else:
+                _, _, _, double_below = check_below(expanded_state, below_idx)
+                return double_below != EMPTY  # King can jump over guard below.
+    # TODO: the other three possible ways 3 dragons can surround the king.
     pass
 
 
