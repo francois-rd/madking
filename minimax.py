@@ -1,7 +1,7 @@
 from state import *
 
 table = dict()  # mapping between states and (utility, move) pairs
-DEFAULT_DEPTH_LIMIT = 100
+DEFAULT_DEPTH_LIMIT = 4
 
 
 def minimax(state, expanded_state, evaluate, remaining_depth):
