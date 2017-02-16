@@ -1,4 +1,5 @@
 from state import *
+from math import floor
 from ui import draw_board
 from utils import parse_move
 
@@ -18,9 +19,11 @@ def run_the_game_simulation(state, moves):
     """
     print("Game is starting like this:")
     print('')
-    draw_board(state)
+    move_number = 1
+    draw_board(state, False, move_number)
     expanded_state = create_expanded_state_representation(state)
     for m in moves:
+        move_number += 0.5
         correct_form, from_tile_idx, to_tile_idx = parse_move(m)
         if not correct_form:
             print("Wrong move format:", m)
@@ -35,10 +38,10 @@ def run_the_game_simulation(state, moves):
         move_piece(state, expanded_state, from_tile_idx, to_tile_idx)
         print('')
         print('')
-        draw_board(state)
-        terminal, status = is_terminal(state, expanded_state)
+        draw_board(state, False, int(floor(move_number)))
+        terminal, utility = is_terminal(state, expanded_state)
         if terminal:
-            print(status)
+            print("Terminal state with utility:", utility)
             break
 
 

@@ -1,6 +1,6 @@
 from state import *
 from sys import stdout
-from utils import FILE, RANK
+from utils import *
 
 """
 This is how the board should be drawn.
@@ -43,23 +43,28 @@ def get_pos(tile_idx):
     return abs(tile_idx % BOARD_NUM_RANKS - 4), tile_idx // BOARD_NUM_RANKS
 
 
-def draw_board(state):
+def draw_board(state, terminal, move_number):
     """
     Draws the board from the given state representation to standard output.
-    Board is green coloured, if it's KING turn
-    Board is red coloured, if it's DRAGON turn
+    Board is green coloured, if it's KING turn.
+    Board is red coloured, if it's DRAGON turn.
 
     :param state: a compact state representation
     :type state: array of bytes
+    :param terminal: is the given state a terminal state?
+    :type terminal: bool
+    :param move_number: the count of the moves so far in the game
+    :type move_number: int
     """
-    if player_turn(state) == KING_PLAYER:
-        print("It's the king player's turn:")
-        if stdout.isatty():
-            print(_C_GREEN, end='')
-    else:
-        print("It's the dragon player's turn:")
-        if stdout.isatty():
-            print(_C_RED, end='')
+    if not terminal:
+        if player_turn(state) == KING_PLAYER:
+            print("Move:", move_number, "(king player's turn)")
+            if stdout.isatty():
+                print(_C_GREEN, end='')
+        else:
+            print("Move:", move_number, "(dragon player's turn)")
+            if stdout.isatty():
+                print(_C_RED, end='')
 
     board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
     row, col = get_pos(get_king_tile_index(state))
@@ -89,5 +94,27 @@ def draw_board(state):
     print()
 
 
-if __name__ == "__main__":
-    draw_board(get_default_game_start())
+def get_player_move(state, expanded_state):
+    """
+    Prompts the player to enter a move, then validates the move. Repeats if the
+    move is not valid. Returns a valid move as a (<from-tile-index>,
+    <to-tile-index>) pair.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: a valid move as a (<from-tile-index>, <to-tile-index>) pair
+    :rtype: (byte, byte)
+    """
+    while True:
+        move = input("Enter your move: ")
+        correct_form, from_tile_idx, to_tile_idx = parse_move(move)
+        if not correct_form:
+            print("Wrong move format: '" + move + "'.")
+            continue
+        if (from_tile_idx, to_tile_idx) not in all_valid_moves(state,
+                                                               expanded_state):
+            print("Invalid move: '" + move + "'.")
+            continue
+        return from_tile_idx, to_tile_idx
