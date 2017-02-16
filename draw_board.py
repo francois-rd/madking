@@ -133,13 +133,13 @@ def run_the_game_simulation(state, moves):
             print("Wrong move format:", m)
             print("Stopping the simulation.")
             break
-        if not is_valid_move(state, expanded_state, from_tile_idx,
-                             to_tile_idx):
+        if (from_tile_idx, to_tile_idx) not in all_valid_moves(state,
+                                                               expanded_state):
             print("Bad move:", m)
             print("Stopping the simulation.")
             break
         print("The move is:", m)
-        move(state, expanded_state, from_tile_idx, to_tile_idx)
+        move_piece(state, expanded_state, from_tile_idx, to_tile_idx)
         print('')
         print('')
         draw_board(state)
