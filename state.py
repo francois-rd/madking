@@ -311,7 +311,7 @@ def _set_winner(state, winning_player):
     :param winning_player: one of KING_PLAYER or DRAGON_PLAYER
     :type winning_player: byte
     """
-    state[0] = (-(winning_player % 2) ^ int(state[0])) & WHO_WON_MASK
+    state[0] ^= (-(winning_player % 2) ^ int(state[0])) & WHO_WON_MASK
 
 
 def _check_left(expanded_state, tile_idx, tile_contents=None):
