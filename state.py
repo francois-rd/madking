@@ -1,4 +1,5 @@
 from array import array
+import sys
 import copy
 
 """
@@ -56,8 +57,8 @@ GUARD = 'G'
 DRAGON = 'D'
 EMPTY = '.'
 OFF_THE_BOARD = ' '
-KING_WIN = 1
-DRAGON_WIN = -1
+KING_WIN = sys.maxsize
+DRAGON_WIN = -sys.maxsize
 DRAW = 0
 
 DEFAULT_KING_PLUS_META_STATE_BYTE = 0b01110000
