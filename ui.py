@@ -59,24 +59,26 @@ def draw_board(state, move_number, terminal=False, utility=0):
     :param utility: the utility value of the state **if the state is terminal**
     :type utility: int
     """
+    board_str = ""
     if terminal:
         if utility == KING_WIN:
-            print("The king player has won!")
+            board_str += "The king player has won!\n"
         elif utility == DRAGON_WIN:
-            print("The dragon player has won!")
+            board_str += "The dragon player has won!\n"
         else:
-            print("It's a draw!")
+            board_str += "It's a draw!\n"
         if stdout.isatty():
-            print(_C_MAGENTA, end='')
+            board_str += _C_MAGENTA
     else:
+        board_str += "Move: " + str(move_number)
         if player_turn(state) == KING_PLAYER:
-            print("Move:", move_number, "(king player's turn)")
+            board_str += " (king player's turn)\n"
             if stdout.isatty():
-                print(_C_GREEN, end='')
+                board_str += _C_GREEN
         else:
-            print("Move:", move_number, "(dragon player's turn)")
+            board_str += " (dragon player's turn)\n"
             if stdout.isatty():
-                print(_C_RED, end='')
+                board_str += _C_RED
 
     board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
     row, col = get_pos(get_king_tile_index(state))
@@ -91,19 +93,19 @@ def draw_board(state, move_number, terminal=False, utility=0):
         board[row][col] = DRAGON
 
     for i, rank in enumerate(board):
-        print(RANK[i] + OFF_THE_BOARD, end='')
+        board_str += RANK[i] + OFF_THE_BOARD
         for tile_content in rank:
-            print(_SPACE + tile_content, end='')
-        print('')
-    print('')
+            board_str += _SPACE + tile_content
+        board_str += "\n"
+    board_str += "\n"
 
-    print(OFF_THE_BOARD + OFF_THE_BOARD, end='')
+    board_str += OFF_THE_BOARD + OFF_THE_BOARD
     for f in FILE:
-        print(OFF_THE_BOARD + f, end='')
-    print('')
+        board_str += OFF_THE_BOARD + f
+    board_str += "\n"
     if stdout.isatty():
-        print(_C_END, end='')
-    print()
+        board_str += _C_END
+    print(board_str)
 
 
 def get_player_move(state, expanded_state):
