@@ -34,7 +34,7 @@ def iterative_deepening_search(initial_state, evaluate, search, max_depth):
     else:
         best_utility = sys.maxsize
     best_move = None
-    for depth in range(max_depth):
+    for depth in range(1, max_depth):
         expanded_state = create_expanded_state_representation(initial_state)
         utility, move = \
             search(initial_state, expanded_state, evaluate, depth, depth)
