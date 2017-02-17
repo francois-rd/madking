@@ -64,7 +64,6 @@ def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
 if __name__ == "__main__":
     from evaluations import simple_eval
     import json
-    global table
     depth_limit = DEFAULT_DEPTH_LIMIT
     game_state = get_default_game_start()
     game_expanded_state = create_expanded_state_representation(game_state)
