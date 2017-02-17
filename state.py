@@ -553,13 +553,13 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
     :return: (<is-king-captured>, <is-king-player's-turn>, <forced-moves>)
     :rtype: (bool, bool, list((byte, byte)))
     """
+    if unknown_content_on_board:
+        at_fourth_side = expanded_state[unknown_content_idx]
+    else:
+        at_fourth_side = OFF_THE_BOARD
     if player_turn(state) == DRAGON_PLAYER:
-        return expanded_state[unknown_content_idx] != EMPTY, False, None
+        return at_fourth_side != EMPTY, False, None
     else:  # It's the king player's turn.
-        if unknown_content_on_board:
-            at_fourth_side = expanded_state[unknown_content_idx]
-        else:
-            at_fourth_side = OFF_THE_BOARD
         if at_fourth_side == EMPTY:
             return False, True, None
         elif at_fourth_side == GUARD or at_fourth_side == OFF_THE_BOARD:
@@ -1154,16 +1154,16 @@ def is_terminal(state, expanded_state):
 
 def successors(state, expanded_state):
     """
-    Returns a list of (successor_state, successor_expanded_state, move) tuples,
-    one tuple for each successor of the given state, where 'move' is itself a
-    pair of (<from-tile-index>, <to-tile-index>).
+    Returns a list of (<successor-state>, <successor-expanded-state>, <move>)
+    tuples, one tuple for each successor of the given state, where 'move' is
+    itself a (<from-tile-index>, <to-tile-index>) pair.
 
     :param state: a compact state representation
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: a list of (successor_state, successor_expanded_state, move)
-        tuples, one pair for each successor of the given state
+    :return: a list of (<successor-state>, <successor-expanded-state>, <move>)
+        tuples, one tuple for each successor of the given state
     :rtype: list((array of bytes, dict(byte, char), (byte, byte)))
     """
     all_successors = []
