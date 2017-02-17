@@ -26,6 +26,7 @@ to a list of 5 lists of strings, as such:
 _SPACE = ' '
 _C_RED = '\033[91m'
 _C_GREEN = '\33[32m'
+_C_MAGENTA = '\33[34m'
 _C_END = '\033[0m'
 
 
@@ -43,7 +44,7 @@ def get_pos(tile_idx):
     return abs(tile_idx % BOARD_NUM_RANKS - 4), tile_idx // BOARD_NUM_RANKS
 
 
-def draw_board(state, terminal, move_number):
+def draw_board(state, move_number, terminal=False, utility=0):
     """
     Draws the board from the given state representation to standard output.
     Board is green coloured, if it's KING turn.
@@ -51,12 +52,23 @@ def draw_board(state, terminal, move_number):
 
     :param state: a compact state representation
     :type state: array of bytes
-    :param terminal: is the given state a terminal state?
-    :type terminal: bool
     :param move_number: the count of the moves so far in the game
     :type move_number: int
+    :param terminal: is the given state a terminal state?
+    :type terminal: bool
+    :param utility: the utility value of the state **if the state is terminal**
+    :type utility: int
     """
-    if not terminal:
+    if terminal:
+        if utility == KING_WIN:
+            print("The king player has won!")
+        elif utility == DRAGON_WIN:
+            print("The dragon player has won!")
+        else:
+            print("It's a draw!")
+        if stdout.isatty():
+            print(_C_MAGENTA, end='')
+    else:
         if player_turn(state) == KING_PLAYER:
             print("Move:", move_number, "(king player's turn)")
             if stdout.isatty():

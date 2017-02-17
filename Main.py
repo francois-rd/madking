@@ -62,23 +62,15 @@ def play_ply(state, expanded_state, for_human, move_number):
     :return: True iff the game has reached a terminal state
     :rtype: bool
     """
-    draw_board(state, False, move_number)
+    draw_board(state, move_number)
     from_tile_idx, to_tile_idx = next_move(state, expanded_state, for_human)
     move_piece(state, expanded_state, from_tile_idx, to_tile_idx)
     print('')
     print('')
     terminal, utility = is_terminal(state, expanded_state)
     if terminal:
-        draw_board(state, True, move_number)
-        if utility == KING_WIN:
-            print("The king player has won!")
-        elif utility == DRAGON_WIN:
-            print("The dragon player has won!")
-        else:
-            print("It's a draw!")
-        print('')
+        draw_board(state, move_number, terminal, utility)
         print("Thanks for playing!")
-        print('')
     return terminal
 
 
@@ -119,8 +111,6 @@ def play_two_player():
 
 
 if __name__ == "__main__":
-    print('')
-    print('')
     print("Welcome to madking!")
     print("We hope you have fun playing 'The Mad King!' game!")
     print('')
