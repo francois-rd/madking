@@ -6,7 +6,8 @@ DEFAULT_DEPTH_LIMIT = 4
 
 def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
     """
-    Performs minimax search, returning a (<utility>, <move>) pair.
+    Performs minimax search, returning a (<utility>, <move>) pair. The move is
+    None is the given state is terminal.
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -22,12 +23,11 @@ def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param max_depth: The maximum depth to which this minimax search will 
-    go.  It is used in the hash_state function to produce a depth-unique
-    state hash for the table.
+    :param max_depth: the maximum depth to which the minimax search will go;
+        used to produce depth-unique hash values of states for the table
     :type max_depth: int
     :return: a (<utility>, <move>) pair
-    :rtype: (numeric, (<from-tile-index>, <to-tile-index>))
+    :rtype: (numeric, (byte, byte))
     """
     global table
 
@@ -38,8 +38,8 @@ def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
     #       table eventually.
     # We calculate the current depth of the search by subtracting the 
     # remaining depth from the maximum depth.  Where the remaining depth is
-    # 0, we will be 'max_depth' down the state-space tree
-    hash_string = hash_state(state, (max_depth - remaining_depth))
+    # 0, we will be 'max_depth' down the search tree.
+    hash_string = hash_state(state, max_depth - remaining_depth)
     if hash_string in table:
         return table[hash_string]
 
@@ -64,6 +64,7 @@ def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
 if __name__ == "__main__":
     from evaluations import simple_eval
     import json
+
     depth_limit = DEFAULT_DEPTH_LIMIT
     game_state = get_default_game_start()
     game_expanded_state = create_expanded_state_representation(game_state)
@@ -71,5 +72,4 @@ if __name__ == "__main__":
                    DEFAULT_DEPTH_LIMIT, depth_limit)
     with open("output.json", 'w') as outfile:
         json.dump(table, outfile, indent=4)
-
     print("Final:", u, m)
