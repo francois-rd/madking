@@ -500,7 +500,8 @@ def _check_below(expanded_state, tile_idx, tile_contents=None):
 
 def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
                                   first_dragon_idx, second_dragon_idx,
-                                  third_dragon_idx, unknown_content_idx):
+                                  third_dragon_idx, unknown_content_idx,
+                                  unknown_content_on_board):
     """
     Given a tile with the king, and three other sides known to have dragons,
     determines whether the king is captured or not based on the unknown
@@ -544,13 +545,21 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
     :param unknown_content_idx: tile index (0-24) corresponding to the fourth
         board position around the king (whose content is unknown)
     :type unknown_content_idx: byte
+    :param unknown_content_on_board: True iff 'unknown_content_idx' is on the
+        board; even if the content of 'unknown_content_idx' is unknown, it
+        should at least be known if the given index represents a tile that
+        actually is on the board
+    :type unknown_content_on_board: bool
     :return: (<is-king-captured>, <is-king-player's-turn>, <forced-moves>)
     :rtype: (bool, bool, list((byte, byte)))
     """
     if player_turn(state) == DRAGON_PLAYER:
         return expanded_state[unknown_content_idx] != EMPTY, False, None
     else:  # It's the king player's turn.
-        at_fourth_side = expanded_state[unknown_content_idx]
+        if unknown_content_on_board:
+            at_fourth_side = expanded_state[unknown_content_idx]
+        else:
+            at_fourth_side = OFF_THE_BOARD
         if at_fourth_side == EMPTY:
             return False, True, None
         elif at_fourth_side == GUARD or at_fourth_side == OFF_THE_BOARD:
@@ -641,33 +650,34 @@ def _is_king_captured(state, expanded_state, king_tile_idx):
     :return: (<is-king-captured>, <is-king-player's-turn>, <forced-moves>)
     :rtype: (bool, bool, list((byte, byte)))
     """
-    _, dragon_left, left_idx, at_left = _check_left(expanded_state,
-                                                    king_tile_idx, [DRAGON])
-    _, dragon_right, right_idx, at_right = _check_right(expanded_state,
-                                                        king_tile_idx,
-                                                        [DRAGON])
-    _, dragon_above, above_idx, at_above = _check_above(expanded_state,
-                                                        king_tile_idx,
-                                                        [DRAGON])
-    _, dragon_below, below_idx, at_below = _check_below(expanded_state,
-                                                        king_tile_idx,
-                                                        [DRAGON])
+    on_board_left, dragon_left, left_idx, at_left = \
+        _check_left(expanded_state, king_tile_idx, [DRAGON])
+    on_board_right, dragon_right, right_idx, at_right = \
+        _check_right(expanded_state, king_tile_idx, [DRAGON])
+    on_board_above, dragon_above, above_idx, at_above = \
+        _check_above(expanded_state, king_tile_idx, [DRAGON])
+    on_board_below, dragon_below, below_idx, at_below = \
+        _check_below(expanded_state, king_tile_idx, [DRAGON])
     if dragon_left and dragon_above and dragon_right:
         return _is_king_captured_fourth_side(state, expanded_state,
                                              king_tile_idx, left_idx,
-                                             above_idx, right_idx, below_idx)
+                                             above_idx, right_idx, below_idx,
+                                             on_board_below)
     elif dragon_above and dragon_right and dragon_below:
         return _is_king_captured_fourth_side(state, expanded_state,
                                              king_tile_idx, above_idx,
-                                             right_idx, below_idx, left_idx)
+                                             right_idx, below_idx, left_idx,
+                                             on_board_left)
     elif dragon_right and dragon_below and dragon_left:
         return _is_king_captured_fourth_side(state, expanded_state,
                                              king_tile_idx, right_idx,
-                                             below_idx, left_idx, above_idx)
+                                             below_idx, left_idx, above_idx,
+                                             on_board_above)
     elif dragon_below and dragon_left and dragon_above:
         return _is_king_captured_fourth_side(state, expanded_state,
                                              king_tile_idx, below_idx,
-                                             left_idx, above_idx, right_idx)
+                                             left_idx, above_idx, right_idx,
+                                             on_board_right)
     else:  # There aren't at least 3 dragons surrounding the king.
         return False, player_turn(state) == KING_PLAYER, None
 
@@ -990,8 +1000,8 @@ def _all_valid_moves_for_king(expanded_state, king_tile_idx):
     if at_below == GUARD:
         # King can't both move down and jump over downwards, so just replace.
         moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
-    return [(king_tile_idx, tile_idx) for _, _, tile_idx, at_tile in
-            moves.values() if at_tile == EMPTY]
+    return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
+            moves.values() if is_valid]
 
 
 def _all_valid_moves_for_guard(expanded_state, tile_idx):
