@@ -39,7 +39,7 @@ def minimax(state, expanded_state, evaluate, remaining_depth, max_depth):
     # We calculate the current depth of the search by subtracting the 
     # remaining depth from the maximum depth.  Where the remaining depth is
     # 0, we will be 'max_depth' down the search tree.
-    hash_string = hash_state(state, max_depth - remaining_depth)
+    hash_string = hash_state(state)
     if hash_string in table:
         return table[hash_string]
 
