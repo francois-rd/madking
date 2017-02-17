@@ -1176,13 +1176,17 @@ def successors(state, expanded_state):
     return all_successors
 
 
-def hash_state(state):
+def hash_state(state, depth):
     """
     Returns a hash string of the given state.
 
     :param state: a compact state representation
     :type state: array of bytes
+    :param depth: The depth at which this state existed.
+    :type depth: int
     :return: a hash string of the given state
     :rtype: string
     """
-    return ''.join(str(b) for b in state)
+    hash_str = ''.join(str(b) + '.' for b in state)
+    hash_str += str(depth)
+    return hash_str
