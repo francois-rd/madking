@@ -52,6 +52,7 @@ TURN_MASK = 0b00000100
 WIN_MASK = 0b00000010
 WHO_WON_MASK = 0b00000001
 ALL_META_STATE_MASK = TURN_MASK | WIN_MASK | WHO_WON_MASK
+INDEX_AND_TURN_MASK = 0b11111100
 KING = 'K'
 GUARD = 'G'
 DRAGON = 'D'
@@ -1186,4 +1187,6 @@ def hash_state(state):
     :return: a hash string of the given state
     :rtype: string
     """
-    return ''.join(str(b) for b in state)
+    return ''.join('{:x}'.format(b) if i > 0
+                   else '{:x}'.format(int(b) & INDEX_AND_TURN_MASK)
+                   for i, b in enumerate(state))
