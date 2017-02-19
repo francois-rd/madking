@@ -60,6 +60,18 @@ class TranspositionTable:
         """
         return self._table.__iter__()
 
+    def get(self, key, default=None):
+        """
+        Returns the value of the entry with the given key, or the given default
+        value if this TranspositionTable does not contain an entry with the
+        given key.
+
+        :param key: the key of the entry
+        :param default: the default to return if there is no entry with the key
+        :return: the value of the entry with the given key, or the default
+        """
+        return self._table.get(key, default)
+
     # ========== REPLACEMENT POLICIES ========== #
 
     def always_replace(self, key, value):
