@@ -61,22 +61,42 @@ def draw_board(state, move_number, terminal=False, utility=0):
     """
     board_str = ""
     if terminal:
-        if utility == KING_WIN:
-            board_str += "The king player has won!\n"
-        elif utility == DRAGON_WIN:
-            board_str += "The dragon player has won!\n"
-        else:
+        if utility == DRAW:
             board_str += "It's a draw!\n"
+        else:
+            board_str += "The "
+            if utility == KING_WIN:
+                if stdout.isatty():
+                    board_str += _C_GREEN
+                board_str += "king "
+            else:
+                if stdout.isatty():
+                    board_str += _C_RED
+                board_str += "dragon "
+            board_str += "player "
+            if stdout.isatty():
+                board_str += _C_END
+            board_str += "won!\n"
         if stdout.isatty():
             board_str += _C_MAGENTA
     else:
-        board_str += "Move: " + str(move_number)
+        board_str += "Move: " + str(move_number) + " ("
         if player_turn(state) == KING_PLAYER:
-            board_str += " (king player's turn)\n"
+            if stdout.isatty():
+                board_str += _C_GREEN
+            board_str += "king "
+        else:
+            if stdout.isatty():
+                board_str += _C_RED
+            board_str += "dragon "
+        board_str += "player"
+        if stdout.isatty():
+            board_str += _C_END
+        board_str += "'s turn)\n"
+        if player_turn(state) == KING_PLAYER:
             if stdout.isatty():
                 board_str += _C_GREEN
         else:
-            board_str += " (dragon player's turn)\n"
             if stdout.isatty():
                 board_str += _C_RED
 
