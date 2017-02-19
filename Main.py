@@ -165,7 +165,7 @@ def play_two_player():
     play(True, True)
 
 
-def play_ai():
+def play_ai_only():
     """
     A game loop that has the AI playing against itself, and displaying the
     game to onlookers.
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     print("We hope you have fun playing 'The Mad King!' game!")
     print('')
     while True:
-        mode = input("Single Player, Two Player, or AI Mode? [s/t/a] ")
+        mode = input("Single Player, Two Player, or AI Only Mode? [s/t/a] ")
         if mode in ["s", "t", "a"]:
             break
         print("Invalid choice: '" + mode + "'")
@@ -198,4 +198,4 @@ if __name__ == "__main__":
     elif mode == "t":
         play_two_player()
     else:
-        play_ai()
+        play_ai_only()
