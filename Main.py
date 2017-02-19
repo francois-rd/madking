@@ -22,7 +22,7 @@ def setup_game():
     return move_number, state, expanded_state
 
 
-def next_move(state, expanded_state, from_human):
+def next_move(state, expanded_state, from_human, age):
     """
     Returns the next move to be played for this ply, either from a human or
     else from the AI.
@@ -33,20 +33,25 @@ def next_move(state, expanded_state, from_human):
     :type expanded_state: dict(byte, char)
     :param from_human: should we get the next move from a human?
     :type from_human: bool
+    :param age: an age counter, which increases (outside of calls to next_move)
+        whenever a move is made that captures a piece
+    :type age: int
     :return: a valid move as a (<from-tile-index>, <to-tile-index>) pair
     :rtype: (byte, byte)
     """
     if from_human:
         return get_player_move(state, expanded_state)
     else:
-        move = minimax(state, expanded_state, simple_eval,
-                       DEFAULT_DEPTH_LIMIT)[1]
+        (utility, exact), move = \
+            minimax(state, expanded_state, simple_eval, age,
+                    DEFAULT_DEPTH_LIMIT, DEFAULT_DEPTH_LIMIT)
         print("The move is:", string_position(move[0]) +
               string_position(move[1]))
+        print("Move utility:", utility, "(exact)" if exact else "(estimated)")
         return move
 
 
-def play_ply(state, expanded_state, for_human, move_number):
+def play_ply(state, expanded_state, for_human, move_number, age):
     """
     Executes a full game ply either for a human player or for the AI. Returns
     True iff the game has reached a terminal state as a result of the ply.
@@ -59,11 +64,15 @@ def play_ply(state, expanded_state, for_human, move_number):
     :type for_human: bool
     :param move_number: which move is this in the game?
     :type move_number: int
+    :param age: an age counter, which increases (outside of calls to play_ply)
+        whenever a move is made that captures a piece
+    :type age: int
     :return: True iff the game has reached a terminal state
     :rtype: bool
     """
     draw_board(state, move_number)
-    from_tile_idx, to_tile_idx = next_move(state, expanded_state, for_human)
+    from_tile_idx, to_tile_idx = \
+        next_move(state, expanded_state, for_human, age)
     move_piece(state, expanded_state, from_tile_idx, to_tile_idx)
     print('')
     print('')
@@ -72,6 +81,31 @@ def play_ply(state, expanded_state, for_human, move_number):
         draw_board(state, move_number, terminal, utility)
         print("Thanks for playing!")
     return terminal
+
+
+def play(player_2_is_human, player_1_is_human):
+    """
+    A game loop that has either a human player or the AI playing interactively
+    against another human or the AI itself. Recall that player 2 plays first!
+
+    :param player_2_is_human: True iff the a human is controlling player 2
+    :type player_2_is_human: bool
+    :param player_1_is_human: True iff the a human is controlling player 1
+    :type player_1_is_human: bool
+    """
+    age = 0
+    move_num, state, expanded_state = setup_game()
+    while True:
+        num_guards = len(get_live_guards_enumeration(state))
+        num_dragons = len(get_live_dragon_enumeration(state))
+        if play_ply(state, expanded_state, player_2_is_human, move_num, age):
+            break
+        if play_ply(state, expanded_state, player_1_is_human, move_num, age):
+            break
+        if num_guards != len(get_live_guards_enumeration(state)) or \
+                num_dragons != len(get_live_dragon_enumeration(state)):
+            age += 1
+        move_num += 1
 
 
 def play_single_player():
@@ -88,26 +122,14 @@ def play_single_player():
         print("You're the Dragon Player, so you play first!")
     else:
         print("You're the King Player, so you play second!")
-    move_number, state, expanded_state = setup_game()
-    while True:
-        if play_ply(state, expanded_state, player_choice == "d", move_number):
-            break
-        if play_ply(state, expanded_state, player_choice != "d", move_number):
-            break
-        move_number += 1
+    play(player_choice == "d", player_choice != "d")
 
 
 def play_two_player():
     """
     A game loop that has a two human players playing against each other.
     """
-    move_number, state, expanded_state = setup_game()
-    while True:
-        if play_ply(state, expanded_state, True, move_number):
-            break
-        if play_ply(state, expanded_state, True, move_number):
-            break
-        move_number += 1
+    play(True, True)
 
 
 if __name__ == "__main__":
