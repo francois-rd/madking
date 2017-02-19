@@ -185,13 +185,18 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth,
 if __name__ == "__main__":
     from evaluations import simple_eval
     import json
+    import sys
 
     dummy_age = 0
-    depth_limit = DEFAULT_DEPTH_LIMIT
+    if len(sys.argv) > 1:
+        depth_limit = int(sys.argv[1])
+    else:
+        depth_limit = DEFAULT_DEPTH_LIMIT
+    print("Running minimax with a depth limit of", depth_limit)
     game_state = get_default_game_start()
     game_expanded_state = create_expanded_state_representation(game_state)
     u, m = minimax(game_state, game_expanded_state, simple_eval, dummy_age,
-                   DEFAULT_DEPTH_LIMIT, depth_limit)
-    with open("output.json", 'w') as outfile:
-        json.dump(_table, outfile, indent=4)
+                   depth_limit, depth_limit)
+    with open("minimax_depth_" + str(depth_limit) + ".json", 'w') as outfile:
+        json.dump(_table.to_json_serializable(), outfile, indent=4)
     print("Final:", u, m)

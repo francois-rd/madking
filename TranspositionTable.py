@@ -35,7 +35,7 @@ class TranspositionTable:
         :return: the value of the removed entry or None if no entry was removed
         """
         if self._current_size == self._max_size:
-            old = self._table.pop(self._replacement_policy(key, value))
+            old = self._table.pop(self._replacement_policy(self, key, value))
         else:
             self._current_size += 1
             old = None
@@ -71,6 +71,28 @@ class TranspositionTable:
         :return: the value of the entry with the given key, or the default
         """
         return self._table.get(key, default)
+
+    def to_json_serializable(self):
+        """
+        Returns a JSON serializable representation of this TranspositionTable.
+
+        :return: a JSON serializable representation of this TranspositionTable
+        """
+        return {
+            'table': self._table,
+            'max-size': self._max_size,
+            'current-size': self._current_size,
+            'replacement-policy': self._replacement_policy.__name__
+        }
+
+    @staticmethod
+    def from_json_serializable(json_object):
+        table = TranspositionTable(json_object['max-size'], None)
+        table._table = OrderedDict(json_object['table'].items())
+        table._current_size = json_object['current-size']
+        table._replacement_policy = getattr(table,
+                                            json_object['replacement-policy'])
+        return table
 
     # ========== REPLACEMENT POLICIES ========== #
 
