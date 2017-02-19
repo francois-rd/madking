@@ -42,9 +42,31 @@ def next_move(state, expanded_state, from_human, age):
     if from_human:
         return get_player_move(state, expanded_state)
     else:
-        (utility, exact), move = \
-            minimax(state, expanded_state, simple_eval, age,
-                    DEFAULT_DEPTH_LIMIT, DEFAULT_DEPTH_LIMIT)
+        from threading import Thread
+        from time import sleep
+
+        class MyThread(Thread):
+            def __init__(self):
+                Thread.__init__(self)
+                self._results = None
+
+            def run(self):
+                self._results = \
+                    minimax(state, expanded_state, simple_eval, age,
+                            DEFAULT_DEPTH_LIMIT, DEFAULT_DEPTH_LIMIT)
+
+            def result(self):
+                return self._results
+
+        thread = MyThread()
+        thread.start()
+        print("Deciding on a move.", end='', flush=True)
+        while thread.is_alive():
+            sleep(1)
+            print(".", end='', flush=True)
+        print('', flush=True)
+        thread.join()
+        (utility, exact), move = thread.result()
         print("The move is:", string_position(move[0]) +
               string_position(move[1]))
         print("Move utility:", utility, "(exact)" if exact else "(estimated)")
