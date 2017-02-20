@@ -13,13 +13,15 @@ class TranspositionTable:
         :param max_size: the maximum number of entries in the table
         :type max_size: integral
         :param replacement_policy: a function that takes a TranspositionTable,
-            a key, and a value, and returns a key, which is either one of the
-            entries in the table whose value is the best candidate for removal
-            when the table is full and a new entry must be added, or is the
-            key of the given/new entry, which is itself not good enough to be
-            added to the table (i.e. the new key is rejected)
-        :type replacement_policy: (TranspositionTable, X, Y) => X, where X is
-            the type of the keys in this table, and Y is the type of the values
+            a key, and a value, and returns a key and a value, which is either
+            one of the entries in the table whose value is the best candidate
+            for removal when the table is full and a new entry must be added,
+            or is the key and value of the given/new entry, which is itself not
+            good enough to be added to the table (i.e. the new entry is
+            rejected)
+        :type replacement_policy: (TranspositionTable, X, Y) => X, Y, where X
+            is the type of the keys in this table, and Y is the type of the
+            values
         """
         self._table = OrderedDict()
         self._max_size = max_size
@@ -48,8 +50,9 @@ class TranspositionTable:
         """
         self._number_attempted_mutations += 1
         if self._current_size == self._max_size:
-            key_to_remove = self._replacement_policy(self, key, value)
-            if key_to_remove == key:  # If the new entry was rejected.
+            key_to_remove, value_to_remove = \
+                self._replacement_policy(self, key, value)
+            if key_to_remove == key and value_to_remove == value:
                 self._number_entries_rejected += 1
                 return value  # Return the new value.
             self._number_entries_replaced += 1
@@ -144,8 +147,8 @@ class TranspositionTable:
 
     def always_replace(self, key, value):
         """
-        Returns the first key in this TranspositionTable.
+        Returns the first (<key>, <value>) pair in this TranspositionTable.
 
-        :return: the first key in this TranspositionTable
+        :return: the first (<key>, <value>) pair in this TranspositionTable
         """
-        return self._table.__iter__().__next__()  # Replace oldest.
+        return next(self._table.items())  # Replace oldest.
