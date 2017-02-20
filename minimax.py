@@ -2,19 +2,16 @@ from TranspositionTable import TranspositionTable
 from state import *
 
 _DEFAULT_SIZE = 1000000
-# TODO: is *from the current root* really going to work for us????
 """
 Each table entry corresponds to one state of the game (in this context, a
 'state' is a board position as well as which player's turn it is).
 
 The table keys will be the hash strings returned by state.hash_state().
 The table values will be tuples of the form:
-    (<max-depth>, <depth>, <age>, <score>, <move>, <exact-alpha-or-beta>)
+    (<depth>, <age>, <score>, <move>, <exact-alpha-or-beta>)
 where
-    <max-depth> is the maximum depth in plies *from the current root* to which
-        the search algorithm will search
-    <depth> is the depth in plies *from current root* of the corresponding
-        state
+    <depth> is the depth in number of edges of the explored subtree rooted at
+        the corresponding state
     <age> is an age counter, which increases whenever a piece is captured
     <score> is the utility value of the corresponding state
     <move> is the move that leads to the best possible child state (i.e. the
@@ -41,6 +38,13 @@ _ALPHA_MASK = 0b00000010
 _BETA_MASK = 0b00000100
 
 DEFAULT_DEPTH_LIMIT = 4
+
+num_term = 0
+num_leafs = 0
+num_hits_and_other_stuff = 0
+num_hits = 0
+num_successors = 0
+num_vs = 0
 
 
 def _is_exact(exact_alpha_or_beta):
@@ -82,7 +86,7 @@ def _is_beta_cutoff(exact_alpha_or_beta):
     return bool(exact_alpha_or_beta & _BETA_MASK)
 
 
-def minimax(state, expanded_state, evaluate, age, remaining_depth, max_depth):
+def minimax(state, expanded_state, evaluate, age, remaining_depth):
     """
     Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
     where <utility> is the utility of <move>, <exact> is True iff <utility> is
@@ -107,47 +111,61 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth, max_depth):
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param max_depth: the maximum depth to which the minimax search will go;
-        used to produce depth-unique hash values of states for the table
-    :type max_depth: int
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
     global _table
-    # We calculate the current depth of the search by subtracting the 
+    global num_term
+    global num_leafs
+    global num_hits_and_other_stuff
+    global num_hits
+    global num_successors
+    global num_vs
+    # We calculate the current depth of the search by subtracting the
     # remaining depth from the maximum depth.  Where the remaining depth is
     # 0, we will be 'max_depth' down the search tree.
     hash_string = hash_state(state)
     value = _table.get(hash_string)
-    if value is not None and value[_MAX_DEPTH_INDEX] >= max_depth and \
-            value[_DEPTH_INDEX] >= max_depth - remaining_depth and \
-            value[_AGE_INDEX] >= age:
-        return (value[_SCORE_INDEX],
-                _is_exact(value[_EXACT_ALPHA_BETA_INDEX])), value[_MOVE_INDEX]
+    if value is not None:
+        num_hits += 1
+        if not value[_DEPTH_INDEX] >= remaining_depth:
+            print("value[_DEPTH_INDEX] >= remaining_depth   => ",
+                  value[_DEPTH_INDEX], ">=", remaining_depth)
+        elif not value[_AGE_INDEX] >= age:
+                print("value[_AGE_INDEX] >= age   => ",
+                      value[_AGE_INDEX], ">=", age)
+        else:
+            num_hits_and_other_stuff += 1
+            return ((value[_SCORE_INDEX],
+                    _is_exact(value[_EXACT_ALPHA_BETA_INDEX])),
+                    value[_MOVE_INDEX])
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
+        num_term += 1
         exact = True
         best_move = None
     elif remaining_depth == 0:
+        num_leafs += 1
         utility = evaluate(state, expanded_state)
         exact = False
         best_move = None
     else:
+        _successors = successors(state, expanded_state)
+        num_successors += len(_successors)
         vs = [(minimax(new_state, new_expanded_state, evaluate, age,
-                       remaining_depth - 1, max_depth)[0], new_move) for
+                       remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
-              successors(state, expanded_state)]
+              _successors]
+        num_vs += len(vs)
         if player_turn(state) == KING_PLAYER:
             (utility, exact), best_move = max(vs, key=lambda i: i[0][0])
         else:
             (utility, exact), best_move = min(vs, key=lambda i: i[0][0])
-        _table[hash_string] = (max_depth, max_depth - remaining_depth, age,
-                               utility, best_move, exact)
+        _table[hash_string] = (remaining_depth, age, utility, best_move, exact)
     return (utility, exact), best_move
 
 
-def alpha_beta(state, expanded_state, evaluate, age, remaining_depth,
-               max_depth):
+def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
     """
     Performs minimax search with alpha beta pruning, returning a
     ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
@@ -173,9 +191,6 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth,
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param max_depth: the maximum depth to which the minimax search will go;
-        used to produce depth-unique hash values of states for the table
-    :type max_depth: int
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
@@ -196,7 +211,9 @@ if __name__ == "__main__":
     game_state = get_default_game_start()
     game_expanded_state = create_expanded_state_representation(game_state)
     u, m = minimax(game_state, game_expanded_state, simple_eval, dummy_age,
-                   depth_limit, depth_limit)
+                   depth_limit)
     with open("minimax_depth_" + str(depth_limit) + ".json", 'w') as outfile:
         json.dump(_table.to_json_serializable(), outfile, indent=4)
-    print("Final:", u, m)
+    print("Final:", "util", u, "move", m, "terminal", num_term, "leafs",
+          num_leafs, "hits", num_hits, "hits_+_more", num_hits_and_other_stuff,
+          "successors", num_successors, "vs", num_vs)
