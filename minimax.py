@@ -87,7 +87,7 @@ def _is_beta_cutoff(exact_alpha_or_beta):
 
 def minimax(state, expanded_state, evaluate, age, remaining_depth):
     """
-    Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
+    Performs min search, returning a ((<utility>, <exact>), <move>) pair,
     where <utility> is the utility of <move>, <exact> is True iff <utility> is
     an exact value (as opposed to a heuristic estimate), and move is a move
     that will give a utility of <utility>. Note that <move> is None iff the
@@ -167,7 +167,7 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
 def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
                alpha=DRAGON_WIN, beta=KING_WIN):
     """
-    Performs minimax search with alpha beta pruning, returning a
+    Performs max search with alpha beta pruning, returning a
     ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
     <move>, <exact> is True iff <utility> is an exact value (as opposed to a
     heuristic estimate), and move is a move that will give a utility of
@@ -242,7 +242,7 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         for successor in _successors:
             new_state, new_expanded_state, new_move = successor
             min_alpha_temp = alpha_beta_min(new_state, new_expanded_state,
-                                    evaluate, age,remaining_depth, alpha, beta)
+                                    evaluate, age,remaining_depth - 1, alpha, beta)
             if utility < min_alpha_temp[0][0]:
                 utility = min_alpha_temp[0][0]
                 best_move = new_move
@@ -333,7 +333,7 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
         for successor in _successors:
             new_state, new_expanded_state, new_move = successor
             max_alpha_temp = alpha_beta_max(new_state, new_expanded_state,
-                                            evaluate, age, remaining_depth,
+                                            evaluate, age, remaining_depth - 1,
                                             alpha, beta)
             if utility > max_alpha_temp[0][0]:
                 utility = max_alpha_temp[0][0]
