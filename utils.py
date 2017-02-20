@@ -48,5 +48,6 @@ def record_move_search_time(time, evaluate, search, max_depth):
     :type max_depth: int
     """
     with open("timing.csv", "a") as file:
-        file.write(','.join(str(i) for i in [time, evaluate.__name__,
-                                             search.__name__, max_depth]))
+        print(','.join(str(i) for i in [time, evaluate.__name__,
+                                        search.__name__, max_depth]),
+              file=file)
