@@ -2,24 +2,26 @@ from state import *
 import sys
 
 
-def iterative_deepening_search(state, evaluate, search, age, max_depth):
+def iterative_deepening_search(state, expanded_state, evaluate, search, age,
+                               max_depth):
     """
     Performs iterative-deepening search using the given search algorithm,
     returning the best result of the search algorithm.
 
     :param state: the root state of the search
     :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
     :param evaluate: a function taking a state and an expanded state and
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
-        evaluation function, an age, a current depth, and a maximum depth, and
-        returning a ((<utility>, <exact>), <move>) pair
+        evaluation function, an age, a remaining depth, and returning a
+        ((<utility>, <exact>), <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int,
                    int,
                    int) => ((numeric, bool), (byte, byte))
     :param age: an age counter, which increases (outside of calls to
@@ -39,9 +41,8 @@ def iterative_deepening_search(state, evaluate, search, age, max_depth):
     best_exact = False
     best_move = None
     for depth in range(1, max_depth + 1):
-        expanded_state = create_expanded_state_representation(state)
         (utility, exact), move = \
-            search(state, expanded_state, evaluate, age, depth, depth)
+            search(state, expanded_state, evaluate, age, depth)
         if player == KING_PLAYER:
             if utility > best_utility:
                 best_utility = utility
@@ -61,5 +62,6 @@ if __name__ == "__main__":
 
     dummy_age = 0
     game_state = get_default_game_start()
-    print(iterative_deepening_search(game_state, simple_eval, minimax,
-                                     dummy_age, DEFAULT_DEPTH_LIMIT))
+    _expanded_state = create_expanded_state_representation(game_state)
+    print(iterative_deepening_search(game_state, _expanded_state, simple_eval,
+                                     minimax, dummy_age, DEFAULT_DEPTH_LIMIT))
