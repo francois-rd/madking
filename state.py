@@ -31,13 +31,13 @@ The first 5 bits of state[0] contain an integer 0-24, which is the position
 Then, the remaining 3 bits in state[0] are:
 - Who's turn?
     Player 1 (King) if bit 6 in state[0] == 1 (because 1 % 2 == 1)
-    Player 2 (Dragon) if bit 6 in state[0] == 0 (because 0 % 2 == 0)
+    Player 2 (Dragon) if bit 6 in state[0] == 0 (because 2 % 2 == 0)
 - Is this a winning state?
     True if bit 7 in state[0] == 1
     False if bit 7 in state[0] == 0
 - Who has won this state? (assuming bit 7 in state[0] == 1)
     Player 1 (King) if bit 8 in state[0] == 1 (because 1 % 2 == 1)
-    Player 2 (Dragon) if bit 8 in state[0] == 0 (because 0 % 2 == 0)
+    Player 2 (Dragon) if bit 8 in state[0] == 0 (because 2 % 2 == 0)
 """
 
 KING_PLAYER = 1
@@ -1187,6 +1187,6 @@ def hash_state(state):
     :return: a hash string of the given state
     :rtype: string
     """
-    return ''.join('{:x}'.format(b) if i > 0
-                   else '{:x}'.format(int(b) & INDEX_AND_TURN_MASK)
-                   for i, b in enumerate(state))
+    return '.'.join('{:x}'.format(b) if i > 0
+                    else '{:x}'.format(int(b) & INDEX_AND_TURN_MASK)
+                    for i, b in enumerate(state))
