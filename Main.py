@@ -1,9 +1,23 @@
+import argparse
 from ui import *
 from minimax import *
 from time import sleep
 from evaluations import simple_eval
 from utils import record_move_search_time
 from search import iterative_deepening_search
+
+defaults = {
+    'eval': {
+        'simple': simple_eval
+    },
+    'eval_name': 'simple',
+    'search': {
+        'minimax': minimax,
+        'alpha-beta': alpha_beta
+    },
+    'search_name': 'minimax',
+    'depth': DEFAULT_DEPTH_LIMIT
+}
 
 
 def setup_game():
@@ -282,7 +296,43 @@ def play_ai_only(evaluate, search, max_depth):
     play(False, False, evaluate, search, max_depth, pause_for)
 
 
+def parse_positive_int(value):
+    """
+    Returns the integer value of the given string, raising an error if the
+    string cannot be parsed to an integer, or if the resulting integer is not
+    positive.
+
+    :param value: the string to parse
+    :type value: string
+    :return: the integer value of the given string
+    :rtype: int
+    """
+    pos = int(value)
+    if pos < 1:
+        raise argparse.ArgumentTypeError("invalid value: " + value)
+    return pos
+
+
 if __name__ == "__main__":
+    # Define command line arguments.
+    _parser = argparse.ArgumentParser(description="Play 'The Mad King! game.")
+    _parser.add_argument("-e", "--eval", default=defaults['eval_name'],
+                         choices=defaults['eval'].keys(),
+                         help="the evaluation function to use")
+    _parser.add_argument("-s", "--search", default=defaults['search_name'],
+                         choices=defaults['search'].keys(),
+                         help="the search algorithm to use")
+    _parser.add_argument("-d", "--depth", type=parse_positive_int,
+                         default=defaults['depth'],
+                         help="the depth limit of the search")
+
+    # Parse command line arguments.
+    _args = _parser.parse_args()
+    _evaluate = defaults['eval'][_args.eval]
+    _search = defaults['search'][_args.search]
+    _depth = _args.depth
+
+    # Play the game.
     print("Welcome to madking!")
     print("We hope you have fun playing 'The Mad King!' game!")
     print('')
@@ -292,8 +342,8 @@ if __name__ == "__main__":
             break
         print("Invalid choice: '" + mode + "'")
     if mode == "s":
-        play_single_player(simple_eval, minimax, DEFAULT_DEPTH_LIMIT)
+        play_single_player(_evaluate, _search, _depth)
     elif mode == "t":
-        play_two_player(simple_eval, minimax, DEFAULT_DEPTH_LIMIT)
+        play_two_player(_evaluate, _search, _depth)
     else:
-        play_ai_only(simple_eval, minimax, DEFAULT_DEPTH_LIMIT)
+        play_ai_only(_evaluate, _search, _depth)
