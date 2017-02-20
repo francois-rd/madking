@@ -47,6 +47,6 @@ def record_move_search_time(time, evaluate, search, max_depth):
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     """
-    with open("timing.csv", "w") as file:
+    with open("timing.csv", "a") as file:
         file.write(','.join(str(i) for i in [time, evaluate.__name__,
                                              search.__name__, max_depth]))
