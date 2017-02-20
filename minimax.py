@@ -192,6 +192,4 @@ if __name__ == "__main__":
     game_expanded_state = create_expanded_state_representation(game_state)
     u, m = minimax(game_state, game_expanded_state, simple_eval, dummy_age,
                    DEFAULT_DEPTH_LIMIT, depth_limit)
-    with open("output.json", 'w') as outfile:
-        json.dump(_table, outfile, indent=4)
     print("Final:", u, m)
