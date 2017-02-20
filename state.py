@@ -1188,5 +1188,5 @@ def hash_state(state):
     :rtype: string
     """
     return '.'.join('{:x}'.format(b) if i > 0
-                   else '{:x}'.format(int(b) & INDEX_AND_TURN_MASK)
-                   for i, b in enumerate(state))
+                    else '{:x}'.format(int(b) & INDEX_AND_TURN_MASK)
+                    for i, b in enumerate(state))
