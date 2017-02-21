@@ -226,12 +226,12 @@ class TranspositionTable:
 
     def __len__(self):
         """
-        Returns the length of this TranspositionTable.
+        Returns the number of entries in this TranspositionTable.
 
-        :return: the length of this TranspositionTable
-        :rtype: int
+        :return: the number of entries in this TranspositionTable
+        :rtype: integral
         """
-        return len(self._table)
+        return self._current_size
 
     def get(self, key, default=None):
         """

@@ -919,12 +919,13 @@ def _all_orthogonal_moves(expanded_state, tile_idx):
         check_above(), and check_below(), respectively
     :rtype: dict(char, (bool, bool, byte, char))
     """
-    return {
-        'l': _check_left(expanded_state, tile_idx, [EMPTY]),
-        'r': _check_right(expanded_state, tile_idx, [EMPTY]),
-        'a': _check_above(expanded_state, tile_idx, [EMPTY]),
-        'b': _check_below(expanded_state, tile_idx, [EMPTY])
-    }
+    from collections import OrderedDict
+    moves = OrderedDict()
+    moves['l'] = _check_left(expanded_state, tile_idx, [EMPTY])
+    moves['r'] = _check_right(expanded_state, tile_idx, [EMPTY])
+    moves['a'] = _check_above(expanded_state, tile_idx, [EMPTY])
+    moves['b'] = _check_below(expanded_state, tile_idx, [EMPTY])
+    return moves
 
 
 def _capture_dragon_moves(expanded_state, moves):
