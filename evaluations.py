@@ -172,12 +172,17 @@ def get_count_threatened_tiles(state, expanded_state):
             # way this guard could be captured in the next turn, so move
             # on to the next guard.
             if threats == 2:
-                remaining_neighbours = [x for x in guard_neighbours if x not in
-                    used_positions]
-                for unoccuppied in remaining_neighbours:
-                    double_neighbours = get_tiles_around(unoccuppied)
-
-
+                unoccuppied_neighbours = [x for x in guard_neighbours if x not in
+                    used_positions] # positions in map
+                for unoccuppied_tile in unnoccupied_neighbours:
+                    second_neighbours = get_eight_tiles(unoccuppied_tile)
+                    for n in double_neighbours: # n is a 2nd neighbour position
+                        content = expanded_state[n]
+                        # Increase the threat if there is a dragon on one
+                        # of the neighbouring tiles, but only if the tile
+                        # of interest is not on which has already been seen.
+                        if n not in used_positions and content == DRAGON:
+                            threats += 1
         if threats >= 3:
             count_threatened_tiles -= 1
 
