@@ -156,7 +156,6 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        print(num_usable_hits)
         if is_exact(value[FLAGS_INDEX]):
             return (value[SCORE_INDEX],
                     is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
@@ -247,7 +246,6 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        print(num_usable_hits)
         if is_exact(value[FLAGS_INDEX]):
             return (value[SCORE_INDEX],
                     is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
