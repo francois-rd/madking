@@ -20,18 +20,24 @@ def simple_eval(state, expanded_state):
     num_guards = len(get_live_guards_enumeration(state))
     guard_weight = 5 / 4
     dragon_weight = 1
-    dragon_score = num_dragons * dragon_weight
-    guard_score = round(num_guards * guard_weight) + king_value
+    dragon_piece_score = num_dragons * dragon_weight
+    guard_piece_score = round(num_guards * guard_weight) + king_value
     controlled_tiles = get_count_controlled_tiles(expanded_state)
+    threatened_units = get_count_threatened_units(state, expanded_state)
+    king_threat = get_king_risk_level(expanded_state)
     king_pos = get_king_tile_index(state)
     king_prog = get_king_progress(king_pos)
-    return guard_score - dragon_score + controlled_tiles + king_prog
+    score = (guard_piece_score - dragon_piece_score) + \
+        controlled_tiles + \
+        threatened_tiles + \
+        king_prog + \
+        king_threat
+    return score
 
-
-def get_tiles_around(pos):
+def get_orthogonal_tiles_around(pos):
     """
-    Get the numbers' of tiles around the board 
-    position 'pos', orthogonally.
+    Get the numbers' of the neighbouring four orthognal tiles around the 
+    board index 'pos'.
     
     :param pos: the board position of interest, 0-24
     :type pos: int
@@ -54,18 +60,19 @@ def get_tiles_around(pos):
         tiles.append(below)
     return tiles
 
-def get_eight_tiles(pos):
+def get_diagonal_tiles_around(pos):
     """
-    Get the eight neighbouring indices of the board index 'pos'.  The values
-    calculated for the upper right, upper left, lower right and lower left
-    indices are not currently guaranteed to work with variable board sizes.
+    Get the four diagonal  neighbouring indices of the board index 'pos'.  
+    The values calculated for the upper right, upper left, lower right and 
+    lower left indices are not currently guaranteed to work with variable 
+    board sizes.
     
-    :param pos: the interested board postion
+    :param pos: the board index of interest.
     :type pos: int
     :return: a list of integer containing index of board positions
     :rtype: [int]
     """
-    tiles = get_tiles_around(pos)
+    tiles = []
     upper_left = pos - (BOARD_NUM_RANKS-1)
     upper_right = pos + (BOARD_NUM_RANKS+1)
     lower_left = pos - (BOARD_NUM_RANKS+1)
@@ -121,7 +128,7 @@ def get_count_controlled_tiles(expanded_state):
     for tile in range(BOARD_NUM_RANKS * BOARD_NUM_FILES):
         content = expanded_state[tile]
         if content is EMPTY:
-            neighbours = get_tiles_around(tile)
+            neighbours = get_orthogonal_tiles_around(tile)
             surrounding_p1_units = 0
             surrounding_p2_units = 0
             for tile_number in neighbours:
@@ -139,12 +146,12 @@ def get_count_controlled_tiles(expanded_state):
     return controlled_tiles
 
 
-def get_count_threatened_tiles(state, expanded_state):
+def get_count_threatened_units(state, expanded_state):
     dragon_positions = get_live_dragon_enumeration(state)
     count_threatened_tiles = 0
     for dragon in dragon_positions:
         threats = 0
-        neighbour_tiles = get_tiles_around(dragon)
+        neighbour_tiles = get_orthogonal_tiles_around(dragon[1]-DRAGON_BASE)
         for neighbour in neighbour_tiles:
             content = expanded_state[neighbour]
             if content is GUARD or content is KING:
@@ -156,7 +163,7 @@ def get_count_threatened_tiles(state, expanded_state):
     for guard in guard_positions:
         threats = 0
         used_positions = []
-        guard_neighbours = get_tiles_around(guard)
+        guard_neighbours = get_orthogonal_tiles_around(guard[1])
         # Examine all direct neighbour of this guard.
         for neighbour in guard_neighbours:
             content = expanded_state[neighbour]
@@ -176,8 +183,11 @@ def get_count_threatened_tiles(state, expanded_state):
                 unoccuppied_neighbours = [x for x in guard_neighbours if x not in
                     used_positions] # positions in map
                 for unoccuppied_tile in unnoccupied_neighbours:
-                    second_neighbours = get_eight_tiles(unoccuppied_tile)
-                    for n in double_neighbours: # n is a 2nd neighbour position
+                    second_neighbours = \
+                            get_orthogonal_tiles_around(unoccuppied_tile)
+                    second_neighbours += \
+                            get_diagonal_tiles_around(unoccuppied_tile)
+                    for n in second_neighbours: # n is a 2nd neighbour position
                         content = expanded_state[n]
                         # Increase the threat if there is a dragon on one
                         # of the neighbouring tiles, but only if the tile
@@ -189,18 +199,42 @@ def get_count_threatened_tiles(state, expanded_state):
     return count_threatened_tiles
 
 
-def is_king_at_risk(king_pos, expanded_state):
+def get_king_risk_level(king_pos, expanded_state):
     """
-    Return true or false depending on whether or not the king
-    is in an orientation which is safe from check or not.
+    Return a negative integer indicating the risk level of the king.
+    The greater the value, the more risk for the king, and the better for 
+    the dragon team.
     
     :param king_pos: A number 0-24 indicating the placement of the
         king on the board:
     :type king_pos: int
-    :param expanded_state: 
+    :param expanded_state: The expanded state representation.
     :type expanded_state: dict(int, char)
-    :return: True if there are three open spots around the king, 
-        and false otherwise.
-    :rtype: Boolean
+    :return: A negative integer indicating the level of risk for the king.
+    :rtype: int
     """
-    surrounding_tiles = get_tiles_around(king_pos)
+    surrounding_tiles = get_eight_tiles(king_pos)
+    num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
+    num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
+    return num_guards - num_dragons
+
+if __name__ == "__main__":
+    print("testing")
+    state = DEFAULT_INITIAL_STATE
+    expanded_state = create_expanded_state_representation(state)
+    num_dragons = len(get_live_dragon_enumeration(state))
+    num_guards = len(get_live_guards_enumeration(state))
+    guard_weight = 5 / 4
+    dragon_weight = 1
+    king_value = 0 
+    dragon_score = num_dragons * dragon_weight
+    guard_score = round(num_guards * guard_weight) + king_value
+    controlled_tiles = get_count_controlled_tiles(expanded_state)
+    print("controlled_tiles:", controlled_tiles)
+    threatened_units = get_count_threatened_units(state, expanded_state)
+    print("threatened_units:", threatened_units)
+    king_pos = get_king_tile_index(state)
+    king_prog = get_king_progress(king_pos)
+    print("king_prog:", king_prog)
+    print("total: ", guard_score - dragon_score + controlled_tiles + king_prog)
+
