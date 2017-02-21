@@ -362,7 +362,7 @@ if __name__ == "__main__":
             str(_table_size) + "." + _args.replace + ".json"
         dump_table(filename)
         print("Final:", "utility", u, "move", m, "terminal", num_term, "leafs",
-              num_leafs, "usable_hits", num_usable_hits)
+              num_leafs, "usable_hits", num_usable_hits, "table entries", get_table_count())
     else:  # Play the game.
         print("Welcome to madking!")
         print("We hope you have fun playing 'The Mad King!' game!")

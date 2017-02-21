@@ -224,6 +224,9 @@ class TranspositionTable:
         """
         return self._table.__iter__()
 
+    def __len__(self):
+        return self._table.__len__()
+
     def get(self, key, default=None):
         """
         Returns the value of the entry with the given key, or the given default

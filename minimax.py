@@ -71,6 +71,7 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     global num_term
     global num_leafs
     global num_usable_hits
+
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
@@ -140,8 +141,17 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        return (value[SCORE_INDEX],
-                is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+        print(num_usable_hits)
+        if is_exact(value[FLAGS_INDEX]):
+            return (value[SCORE_INDEX],
+                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+        if is_alpha_cutoff(value([FLAGS_INDEX])):
+            alpha = max(alpha, value[SCORE_INDEX])
+        if is_beta_cutoff(value[FLAGS_INDEX]):
+            beta = min(beta, value[SCORE_INDEX])
+        if alpha >= beta:
+            return (value[SCORE_INDEX],
+                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -153,8 +163,6 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
         exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
-        # TODO: what if every successor is a dragon win? Then, will it return
-        #       when exact == None and best_move == None? I think so.
         utility = DRAGON_WIN
         exact = None  # Not sure
         best_move = None  # Not sure
@@ -168,9 +176,18 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
                 best_move = new_move
                 exact = new_exact
             if utility >= beta:
+                _table[hash_string] = (remaining_depth, utility, best_move,
+                                       set_flags(exact=exact, beta_cutoff=True))
                 return (utility, exact), best_move
             else:
                 alpha = max(alpha, utility)
+            # If all moves are equal, just return the first successor
+            if exact is None and best_move is None:
+                exact = new_exact
+                best_move = new_move
+
+        _table[hash_string] = (remaining_depth, utility, best_move,
+                               set_flags(exact=exact))
     return (utility, exact), best_move
 
 
@@ -215,8 +232,17 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        return (value[SCORE_INDEX],
-                is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+        print(num_usable_hits)
+        if is_exact(value[FLAGS_INDEX]):
+            return (value[SCORE_INDEX],
+                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+        if is_alpha_cutoff(value([FLAGS_INDEX])):
+            alpha = max(alpha, value[SCORE_INDEX])
+        if is_beta_cutoff(value[FLAGS_INDEX]):
+            beta = min(beta, value[SCORE_INDEX])
+        if alpha >= beta:
+            return (value[SCORE_INDEX],
+                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -228,8 +254,6 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
         exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
-        # TODO: what if every successor is a dragon win? Then, will it return
-        #       when exact == None and best_move == None? I think so.
         utility = KING_WIN
         best_move = None  # Not sure
         exact = None  # Not sure
@@ -243,9 +267,18 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
                 best_move = new_move
                 exact = new_exact
             if utility <= alpha:
+                _table[hash_string] = (remaining_depth, utility, best_move,
+                                       set_flags(exact=exact, alpha_cutoff=True))
                 return (utility, exact), best_move
             else:
                 beta = min(beta, utility)
+            # If all moves are equal, just return the first successor
+            if exact is None and best_move is None:
+                exact = new_exact
+                best_move = new_move
+
+        _table[hash_string] = (remaining_depth, utility, best_move,
+                               set_flags(exact=exact))
     return (utility, exact), best_move
 
 
@@ -279,3 +312,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth):
         return alpha_beta_max(state, expanded_state, evaluate, remaining_depth)
     else:
         return alpha_beta_min(state, expanded_state, evaluate, remaining_depth)
+
+
+def get_table_count():
+    return len(_table)
