@@ -76,7 +76,7 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
         return (value[SCORE_INDEX],
-                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
+                is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -141,7 +141,7 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
         return (value[SCORE_INDEX],
-                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
+                is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -216,7 +216,7 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
         return (value[SCORE_INDEX],
-                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
+                is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
