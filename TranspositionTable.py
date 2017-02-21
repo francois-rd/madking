@@ -225,7 +225,13 @@ class TranspositionTable:
         return self._table.__iter__()
 
     def __len__(self):
-        return self._table.__len__()
+        """
+        Returns the length of this TranspositionTable.
+
+        :return: the length of this TranspositionTable
+        :rtype: int
+        """
+        return len(self._table)
 
     def get(self, key, default=None):
         """

@@ -28,6 +28,17 @@ def init_table(max_size, replacement_policy):
     _table = TranspositionTable(max_size, replacement_policy)
 
 
+def get_table_count():
+    """
+    Returns the length of the global transposition table.
+
+    :return: the length of the global transposition table
+    :rtype: int
+    """
+    global _table
+    return len(_table)
+
+
 def dump_table(filename):
     """
     Prints the global transposition table to the file with the given name in
@@ -86,7 +97,6 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     global num_term
     global num_leafs
     global num_usable_hits
-
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
@@ -156,16 +166,17 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        if is_exact(value[FLAGS_INDEX]):
-            return (value[SCORE_INDEX],
-                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
-        if is_alpha_cutoff(value([FLAGS_INDEX])):
-            alpha = max(alpha, value[SCORE_INDEX])
-        if is_beta_cutoff(value[FLAGS_INDEX]):
-            beta = min(beta, value[SCORE_INDEX])
+        flags = value[FLAGS_INDEX]
+        exact = is_exact(flags)
+        if exact:
+            return (value[SCORE_INDEX], exact), value[MOVE_INDEX]
+        score = value[SCORE_INDEX]
+        if is_alpha_cutoff(flags):
+            alpha = max(alpha, score)
+        if is_beta_cutoff(flags):
+            beta = min(beta, score)
         if alpha >= beta:
-            return (value[SCORE_INDEX],
-                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+            return (score, exact), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -246,16 +257,17 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        if is_exact(value[FLAGS_INDEX]):
-            return (value[SCORE_INDEX],
-                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
-        if is_alpha_cutoff(value([FLAGS_INDEX])):
-            alpha = max(alpha, value[SCORE_INDEX])
-        if is_beta_cutoff(value[FLAGS_INDEX]):
-            beta = min(beta, value[SCORE_INDEX])
+        flags = value[FLAGS_INDEX]
+        exact = is_exact(flags)
+        if exact:
+            return (value[SCORE_INDEX], exact), value[MOVE_INDEX]
+        score = value[SCORE_INDEX]
+        if is_alpha_cutoff(flags):
+            alpha = max(alpha, score)
+        if is_beta_cutoff(flags):
+            beta = min(beta, score)
         if alpha >= beta:
-            return (value[SCORE_INDEX],
-                    is_exact(value[FLAGS_INDEX])), value[MOVE_INDEX]
+            return (score, exact), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -281,7 +293,8 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
                 exact = new_exact
             if utility <= alpha:
                 _table[hash_string] = (remaining_depth, utility, best_move,
-                                       set_flags(exact=exact, alpha_cutoff=True))
+                                       set_flags(exact=exact,
+                                                 alpha_cutoff=True))
                 return (utility, exact), best_move
             else:
                 beta = min(beta, utility)
@@ -325,7 +338,3 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth):
         return alpha_beta_max(state, expanded_state, evaluate, remaining_depth)
     else:
         return alpha_beta_min(state, expanded_state, evaluate, remaining_depth)
-
-
-def get_table_count():
-    return len(_table)
