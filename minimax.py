@@ -7,7 +7,6 @@ DEFAULT_DEPTH_LIMIT = 4
 num_term = 0
 num_leafs = 0
 num_usable_hits = 0
-num_hits = 0
 
 
 def init_table(max_size, replacement_policy):
@@ -29,7 +28,7 @@ def init_table(max_size, replacement_policy):
     _table = TranspositionTable(max_size, replacement_policy)
 
 
-def minimax(state, expanded_state, evaluate, age, remaining_depth):
+def minimax(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
     where <utility> is the utility of <move>, <exact> is True iff <utility> is
@@ -45,9 +44,6 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param age: an age counter, which increases (outside of calls to minimax)
-        whenever a move is made that captures a piece
-    :type age: int
     :param remaining_depth: how many more plies to visit recursively (i.e. what
         is the (maximum) remaining depth of the minimax recursive call tree);
         when this value hits 0, if the state at that depth is not a terminal
@@ -61,16 +57,12 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
     global num_term
     global num_leafs
     global num_usable_hits
-    global num_hits
     hash_string = hash_state(state)
     value = _table.get(hash_string)
-    if value is not None:
-        num_hits += 1
-        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
-            num_usable_hits += 1
-            return ((value[SCORE_INDEX],
-                    is_exact(value[EXACT_ALPHA_BETA_INDEX])),
-                    value[MOVE_INDEX])
+    if value is not None and value[DEPTH_INDEX] >= remaining_depth:
+        num_usable_hits += 1
+        return (value[SCORE_INDEX],
+                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -82,7 +74,7 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
         exact = False
         best_move = None
     else:
-        vs = [(minimax(new_state, new_expanded_state, evaluate, age,
+        vs = [(minimax(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
               successors(state, expanded_state)]
@@ -90,11 +82,11 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
             (utility, exact), best_move = max(vs, key=lambda i: i[0][0])
         else:
             (utility, exact), best_move = min(vs, key=lambda i: i[0][0])
-        _table[hash_string] = (remaining_depth, age, utility, best_move, exact)
+        _table[hash_string] = (remaining_depth, utility, best_move, exact)
     return (utility, exact), best_move
 
 
-def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
+def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
                    alpha=DRAGON_WIN, beta=KING_WIN):
     """
     Performs the max part of minimax search with alpha beta pruning, returning
@@ -112,9 +104,6 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param age: an age counter, which increases (outside of calls to minimax)
-        whenever a move is made that captures a piece
-    :type age: int
     :param remaining_depth: how many more plies to visit recursively (i.e. what
         is the (maximum) remaining depth of the minimax recursive call tree);
         when this value hits 0, if the state at that depth is not a terminal
@@ -134,16 +123,12 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
     global num_term
     global num_leafs
     global num_usable_hits
-    global num_hits
     hash_string = hash_state(state)
     value = _table.get(hash_string)
-    if value is not None:
-        num_hits += 1
-        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
-            num_usable_hits += 1
-            return ((value[SCORE_INDEX],
-                     is_exact(value[EXACT_ALPHA_BETA_INDEX])),
-                    value[MOVE_INDEX])
+    if value is not None and value[DEPTH_INDEX] >= remaining_depth:
+        num_usable_hits += 1
+        return (value[SCORE_INDEX],
+                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -163,7 +148,7 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         for new_state, new_expanded_state, new_move in \
                 successors(state, expanded_state):
             new_util, new_exact = \
-                alpha_beta_min(new_state, new_expanded_state, evaluate, age,
+                alpha_beta_min(new_state, new_expanded_state, evaluate,
                                remaining_depth - 1, alpha, beta)[0]
             if utility < new_util:
                 utility = new_util
@@ -176,7 +161,7 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
     return (utility, exact), best_move
 
 
-def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
+def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
                    alpha=DRAGON_WIN, beta=KING_WIN):
     """
     Performs the min part of minimax search with alpha beta pruning, returning
@@ -194,9 +179,6 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param age: an age counter, which increases (outside of calls to minimax)
-        whenever a move is made that captures a piece
-    :type age: int
     :param remaining_depth: how many more plies to visit recursively (i.e. what
         is the (maximum) remaining depth of the minimax recursive call tree);
         when this value hits 0, if the state at that depth is not a terminal
@@ -216,16 +198,12 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
     global num_term
     global num_leafs
     global num_usable_hits
-    global num_hits
     hash_string = hash_state(state)
     value = _table.get(hash_string)
-    if value is not None:
-        num_hits += 1
-        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
-            num_usable_hits += 1
-            return ((value[SCORE_INDEX],
-                     is_exact(value[EXACT_ALPHA_BETA_INDEX])),
-                    value[MOVE_INDEX])
+    if value is not None and value[DEPTH_INDEX] >= remaining_depth:
+        num_usable_hits += 1
+        return (value[SCORE_INDEX],
+                is_exact(value[EXACT_ALPHA_BETA_INDEX])), value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -245,7 +223,7 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
         for new_state, new_expanded_state, new_move in \
                 successors(state, expanded_state):
             new_util, new_exact = \
-                alpha_beta_max(new_state, new_expanded_state, evaluate, age,
+                alpha_beta_max(new_state, new_expanded_state, evaluate,
                                remaining_depth - 1, alpha, beta)[0]
             if utility > new_util:
                 utility = new_util
@@ -258,7 +236,7 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
     return (utility, exact), best_move
 
 
-def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
+def alpha_beta(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search with alpha beta pruning, returning a
     ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
@@ -275,9 +253,6 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param age: an age counter, which increases (outside of calls to minimax)
-        whenever a move is made that captures a piece
-    :type age: int
     :param remaining_depth: how many more plies to visit recursively (i.e. what
         is the (maximum) remaining depth of the minimax recursive call tree);
         when this value hits 0, if the state at that depth is not a terminal
@@ -288,11 +263,9 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
     :rtype: ((numeric, bool), (byte, byte))
     """
     if player_turn(state) == KING_PLAYER:
-        return alpha_beta_max(state, expanded_state, evaluate, age,
-                              remaining_depth)
+        return alpha_beta_max(state, expanded_state, evaluate, remaining_depth)
     else:
-        return alpha_beta_min(state, expanded_state, evaluate, age,
-                              remaining_depth)
+        return alpha_beta_min(state, expanded_state, evaluate, remaining_depth)
 
 
 if __name__ == "__main__":
@@ -300,7 +273,6 @@ if __name__ == "__main__":
     import json
     import sys
 
-    dummy_age = 0
     if len(sys.argv) > 1:
         depth_limit = int(sys.argv[1])
     else:
@@ -308,9 +280,8 @@ if __name__ == "__main__":
     print("Running minimax with a depth limit of", depth_limit)
     game_state = get_default_game_start()
     game_expanded_state = create_expanded_state_representation(game_state)
-    u, m = minimax(game_state, game_expanded_state, simple_eval, dummy_age,
-                   depth_limit)
+    u, m = minimax(game_state, game_expanded_state, simple_eval, depth_limit)
     with open("minimax_depth_" + str(depth_limit) + ".json", 'w') as outfile:
         json.dump(_table.to_json_serializable(), outfile, indent=4)
     print("Final:", "util", u, "move", m, "terminal", num_term, "leafs",
-          num_leafs, "hits", num_hits, "hits_+_more", num_usable_hits)
+          num_leafs, "usable_hits", num_usable_hits)

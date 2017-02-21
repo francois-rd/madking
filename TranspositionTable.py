@@ -6,11 +6,10 @@ Each table entry corresponds to one state of the game (in this context, a
 
 The table keys will be the hash strings returned by state.hash_state().
 The table values will be tuples of the form:
-    (<depth>, <age>, <score>, <move>, <exact-alpha-or-beta>)
+    (<depth>, <score>, <move>, <exact-alpha-or-beta>)
 where
     <depth> is the depth in number of edges of the explored subtree rooted at
         the corresponding state
-    <age> is an age counter, which increases whenever a piece is captured
     <score> is the utility value of the corresponding state
     <move> is the move that leads to the best possible child state (i.e. the
         move that will lead to the value of <score> being correct)
@@ -24,10 +23,9 @@ where
 """
 
 DEPTH_INDEX = 0
-AGE_INDEX = 1
-SCORE_INDEX = 2
-MOVE_INDEX = 3
-EXACT_ALPHA_BETA_INDEX = 4
+SCORE_INDEX = 1
+MOVE_INDEX = 2
+EXACT_ALPHA_BETA_INDEX = 3
 
 _EXACT_MASK = 0b00000001
 _ALPHA_MASK = 0b00000010
