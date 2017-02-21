@@ -45,10 +45,10 @@ def dump_table(filename):
 def minimax(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
-    where <utility> is the utility of <move>, <exact> is True iff <utility> is
-    an exact value (as opposed to a heuristic estimate), and move is a move
-    that will give a utility of <utility>. Note that <move> is None iff the
-    given state is terminal, or 'remaining_depth' starts off at 0.
+    where <utility> is the utility of <move>, <exact> is unconditionally True,
+    and move is a move that will give a utility of <utility>. Note that <move>
+    is None iff the given state is terminal, or 'remaining_depth' starts off at
+    0.
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -80,12 +80,10 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
-        exact = True
         best_move = None
     elif remaining_depth == 0:
         num_leafs += 1
         utility = evaluate(state, expanded_state)
-        exact = False
         best_move = None
     else:
         vs = [(minimax(new_state, new_expanded_state, evaluate,
@@ -96,8 +94,9 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
             (utility, exact), best_move = max(vs, key=lambda i: i[0][0])
         else:
             (utility, exact), best_move = min(vs, key=lambda i: i[0][0])
-        _table[hash_string] = (remaining_depth, utility, best_move, exact)
-    return (utility, exact), best_move
+        _table[hash_string] = (remaining_depth, utility, best_move,
+                               set_flags(exact=exact))
+    return (utility, True), best_move
 
 
 def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
@@ -105,8 +104,8 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     """
     Performs the max part of minimax search with alpha beta pruning, returning
     a ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
-    <move>, <exact> is True iff <utility> is an exact value (as opposed to a
-    heuristic estimate), and move is a move that will give a utility of
+    <move>, <exact> is True iff <utility> is an exact value (as opposed to an
+    alpha or a beta cutoff), and move is a move that will give a utility of
     <utility>. Note that <move> is None iff the given state is terminal, or
     'remaining_depth' starts off at 0.
 
@@ -151,7 +150,7 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
     elif remaining_depth == 0:
         num_leafs += 1
         utility = evaluate(state, expanded_state)
-        exact = False
+        exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
         # TODO: what if every successor is a dragon win? Then, will it return
@@ -180,8 +179,8 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     """
     Performs the min part of minimax search with alpha beta pruning, returning
     a ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
-    <move>, <exact> is True iff <utility> is an exact value (as opposed to a
-    heuristic estimate), and move is a move that will give a utility of
+    <move>, <exact> is True iff <utility> is an exact value (as opposed to an
+    alpha or a beta cutoff), and move is a move that will give a utility of
     <utility>. Note that <move> is None iff the given state is terminal, or
     remaining_depth starts off at 0.
 
@@ -226,7 +225,7 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
     elif remaining_depth == 0:
         num_leafs += 1
         utility = evaluate(state, expanded_state)
-        exact = False
+        exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
         # TODO: what if every successor is a dragon win? Then, will it return
@@ -254,8 +253,8 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search with alpha beta pruning, returning a
     ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
-    <move>, <exact> is True iff <utility> is an exact value (as opposed to a
-    heuristic estimate), and move is a move that will give a utility of
+    <move>, <exact> is True iff <utility> is an exact value (as opposed to an
+    alpha or a beta cutoff), and move is a move that will give a utility of
     <utility>. Note that <move> is None iff the given state is terminal, or
     remaining_depth starts off at 0.
 
