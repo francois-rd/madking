@@ -357,12 +357,11 @@ if __name__ == "__main__":
               "and a table of size", _table_size, "with policy", _args.replace)
         game_state = get_default_game_start()
         game_expanded_state = create_expanded_state_representation(game_state)
-        u, m = _search(game_state, game_expanded_state, simple_eval, _depth)
+        result = _search(game_state, game_expanded_state, simple_eval, _depth)
         filename = _args.algorithm + ".depth" + str(_depth) + ".table_size" + \
             str(_table_size) + "." + _args.replace + ".json"
         dump_table(filename)
-        print("Final:", "utility", u, "move", m, "terminal", num_term, "leafs",
-              num_leafs, "usable_hits", num_usable_hits, "table entries", get_table_count())
+        print_utility_move_and_global_counters(result)
     else:  # Play the game.
         print("Welcome to madking!")
         print("We hope you have fun playing 'The Mad King!' game!")
