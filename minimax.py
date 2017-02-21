@@ -42,6 +42,21 @@ def dump_table(filename):
         json.dump(_table.to_json_serializable(), outfile, indent=1)
 
 
+def print_utility_move_and_global_counters(result):
+    """
+    Prints the given result of minimax or alpha beta search, as well as the
+    global counters 'num_term', 'num_leafs', and 'num_usable_hits'.
+
+    :param result: a ((<utility>, <exact>), <move>) pair returned by either
+        minimax or alpha beta
+    """
+    global num_term
+    global num_leafs
+    global num_usable_hits
+    print("Final:", "utility", result[0], "move", result[1], "terminal",
+          num_term, "leafs", num_leafs, "usable_hits", num_usable_hits)
+
+
 def minimax(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
