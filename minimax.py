@@ -28,6 +28,20 @@ def init_table(max_size, replacement_policy):
     _table = TranspositionTable(max_size, replacement_policy)
 
 
+def dump_table(filename):
+    """
+    Prints the global transposition table to the file with the given name in
+    JSON format.
+
+    :param filename: the name of the file to which to prints the table
+    """
+    import json
+
+    global _table
+    with open(filename, 'w') as outfile:
+        json.dump(_table.to_json_serializable(), outfile, indent=1)
+
+
 def minimax(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
@@ -266,22 +280,3 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth):
         return alpha_beta_max(state, expanded_state, evaluate, remaining_depth)
     else:
         return alpha_beta_min(state, expanded_state, evaluate, remaining_depth)
-
-
-if __name__ == "__main__":
-    from evaluations import simple_eval
-    import json
-    import sys
-
-    if len(sys.argv) > 1:
-        depth_limit = int(sys.argv[1])
-    else:
-        depth_limit = DEFAULT_DEPTH_LIMIT
-    print("Running minimax with a depth limit of", depth_limit)
-    game_state = get_default_game_start()
-    game_expanded_state = create_expanded_state_representation(game_state)
-    u, m = minimax(game_state, game_expanded_state, simple_eval, depth_limit)
-    with open("minimax_depth_" + str(depth_limit) + ".json", 'w') as outfile:
-        json.dump(_table.to_json_serializable(), outfile, indent=4)
-    print("Final:", "util", u, "move", m, "terminal", num_term, "leafs",
-          num_leafs, "usable_hits", num_usable_hits)

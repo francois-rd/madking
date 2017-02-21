@@ -324,7 +324,7 @@ if __name__ == "__main__":
     _parser.add_argument("-e", "--eval", default=defaults['eval_name'],
                          choices=defaults['eval'].keys(),
                          help="the evaluation function to use")
-    _parser.add_argument("-s", "--search", default=defaults['search_name'],
+    _parser.add_argument("-a", "--algorithm", default=defaults['search_name'],
                          choices=defaults['search'].keys(),
                          help="the search algorithm to use")
     _parser.add_argument("-d", "--depth", type=parse_positive_int,
@@ -333,31 +333,48 @@ if __name__ == "__main__":
     _parser.add_argument("-r", "--replace", default=defaults['replace_name'],
                          choices=defaults['replace'].keys(),
                          help="the replacement policy to use")
-    _parser.add_argument("-t", "--table-size", type=parse_positive_int,
+    _parser.add_argument("-s", "--table-size", type=parse_positive_int,
                          default=defaults['table-size'],
                          help="the size of the transposition table")
+    _parser.add_argument("-t", "--run-quick-test", action='store_true',
+                         help="run a quick minimax/alpha-beta test instead of"
+                              "playing the actual game")
 
     # Parse command line arguments.
     _args = _parser.parse_args()
     _evaluate = defaults['eval'][_args.eval]
-    _search = defaults['search'][_args.search]
+    _search = defaults['search'][_args.algorithm]
     _depth = _args.depth
     _replacement = defaults['replace'][_args.replace]
     _table_size = _args.table_size
+    _run_quick_test = _args.run_quick_test
 
-    # Play the game.
-    print("Welcome to madking!")
-    print("We hope you have fun playing 'The Mad King!' game!")
-    print('')
-    while True:
-        mode = input("Single Player, Two Player, or AI Only Mode? [s/t/a] ")
-        if mode in ["s", "t", "a"]:
-            break
-        print("Invalid choice: '" + mode + "'")
+    # Initialize the global transposition table.
     init_table(_table_size, _replacement)
-    if mode == "s":
-        play_single_player(_evaluate, _search, _depth)
-    elif mode == "t":
-        play_two_player(_evaluate, _search, _depth)
-    else:
-        play_ai_only(_evaluate, _search, _depth)
+
+    if _run_quick_test:  # Run a search, and print results to console and file.
+        print("Running", _args.algorithm, "with a depth limit of", _depth,
+              "and a table of size", _table_size, "with policy", _args.replace)
+        game_state = get_default_game_start()
+        game_expanded_state = create_expanded_state_representation(game_state)
+        u, m = _search(game_state, game_expanded_state, simple_eval, _depth)
+        filename = _args.algorithm + ".depth" + str(_depth) + ".table_size" + \
+            str(_table_size) + "." + _args.replace + ".json"
+        dump_table(filename)
+        print("Final:", "utility", u, "move", m, "terminal", num_term, "leafs",
+              num_leafs, "usable_hits", num_usable_hits)
+    else:  # Play the game.
+        print("Welcome to madking!")
+        print("We hope you have fun playing 'The Mad King!' game!")
+        print('')
+        while True:
+            mode = input("Single Player, Two Player, or AI Only Mode? [s/t/a] ")
+            if mode in ["s", "t", "a"]:
+                break
+            print("Invalid choice: '" + mode + "'")
+        if mode == "s":
+            play_single_player(_evaluate, _search, _depth)
+        elif mode == "t":
+            play_two_player(_evaluate, _search, _depth)
+        else:
+            play_ai_only(_evaluate, _search, _depth)
