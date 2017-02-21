@@ -6,19 +6,24 @@ DEFAULT_DEPTH_LIMIT = 4
 
 num_term = 0
 num_leafs = 0
-num_hits_and_other_stuff = 0
+num_usable_hits = 0
 num_hits = 0
-num_successors = 0
-num_vs = 0
 
 
 def init_table(max_size, replacement_policy):
     """
     Initializes the global transposition table with the given parameters.
 
-    :param max_size:
-    :param replacement_policy:
-    :return:
+    :param max_size: the maximum number of entries in the table
+    :type max_size: integral
+    :param replacement_policy: a function that takes a TranspositionTable, a
+        key, and a value, and returns a key and a value, which is either one of
+        the entries in the table whose value is the best candidate for removal
+        when the table is full and a new entry must be added, or is the key and
+        value of the given/new entry, which is itself not good enough to be
+        added to the table (i.e. the new entry is rejected)
+    :type replacement_policy: (TranspositionTable, X, Y) => X, Y, where X is
+        the type of the keys in this table, and Y is the type of the values
     """
     global _table
     _table = TranspositionTable(max_size, replacement_policy)
@@ -26,11 +31,11 @@ def init_table(max_size, replacement_policy):
 
 def minimax(state, expanded_state, evaluate, age, remaining_depth):
     """
-    Performs min search, returning a ((<utility>, <exact>), <move>) pair,
+    Performs minimax search, returning a ((<utility>, <exact>), <move>) pair,
     where <utility> is the utility of <move>, <exact> is True iff <utility> is
     an exact value (as opposed to a heuristic estimate), and move is a move
     that will give a utility of <utility>. Note that <move> is None iff the
-    given state is terminal, or remaining_depth starts off at 0.
+    given state is terminal, or 'remaining_depth' starts off at 0.
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -55,25 +60,14 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
     global _table
     global num_term
     global num_leafs
-    global num_hits_and_other_stuff
+    global num_usable_hits
     global num_hits
-    global num_successors
-    global num_vs
-    # We calculate the current depth of the search by subtracting the
-    # remaining depth from the maximum depth.  Where the remaining depth is
-    # 0, we will be 'max_depth' down the search tree.
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[DEPTH_INDEX] >= remaining_depth:
-            print("value[DEPTH_INDEX] >= remaining_depth   => ",
-                  value[DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[AGE_INDEX] >= age:
-                print("value[AGE_INDEX] >= age   => ",
-                      value[AGE_INDEX], ">=", age)
-        else:
-            num_hits_and_other_stuff += 1
+        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
+            num_usable_hits += 1
             return ((value[SCORE_INDEX],
                     is_exact(value[EXACT_ALPHA_BETA_INDEX])),
                     value[MOVE_INDEX])
@@ -88,13 +82,10 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
         exact = False
         best_move = None
     else:
-        _successors = successors(state, expanded_state)
-        num_successors += len(_successors)
         vs = [(minimax(new_state, new_expanded_state, evaluate, age,
                        remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
-              _successors]
-        num_vs += len(vs)
+              successors(state, expanded_state)]
         if player_turn(state) == KING_PLAYER:
             (utility, exact), best_move = max(vs, key=lambda i: i[0][0])
         else:
@@ -106,12 +97,12 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
 def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
                    alpha=DRAGON_WIN, beta=KING_WIN):
     """
-    Performs max search with alpha beta pruning, returning a
-    ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
+    Performs the max part of minimax search with alpha beta pruning, returning
+    a ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
     <move>, <exact> is True iff <utility> is an exact value (as opposed to a
     heuristic estimate), and move is a move that will give a utility of
     <utility>. Note that <move> is None iff the given state is terminal, or
-    remaining_depth starts off at 0.
+    'remaining_depth' starts off at 0.
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -130,35 +121,26 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param alpha:
-    :type: alpha int
-    :param beta:
-    :type: beta int
+    :param alpha: the utility of the best (i.e. highest-utility) move found so
+        far for the king player
+    :type: alpha numeric
+    :param beta: the utility of the best (i.e. lowest-utility) move found so
+        far for the dragon player
+    :type: beta numeric
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
     global _table
     global num_term
     global num_leafs
-    global num_hits_and_other_stuff
+    global num_usable_hits
     global num_hits
-    global num_successors
-    global num_vs
-    # We calculate the current depth of the search by subtracting the
-    # remaining depth from the maximum depth.  Where the remaining depth is
-    # 0, we will be 'max_depth' down the search tree.
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[DEPTH_INDEX] >= remaining_depth:
-            print("value[DEPTH_INDEX] >= remaining_depth   => ",
-                  value[DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[AGE_INDEX] >= age:
-            print("value[AGE_INDEX] >= age   => ",
-                  value[AGE_INDEX], ">=", age)
-        else:
-            num_hits_and_other_stuff += 1
+        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
+            num_usable_hits += 1
             return ((value[SCORE_INDEX],
                      is_exact(value[EXACT_ALPHA_BETA_INDEX])),
                     value[MOVE_INDEX])
@@ -173,21 +155,20 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         exact = False
         best_move = None
     else:
-        _successors = successors(state, expanded_state)
-        num_successors += len(_successors)
+        # TODO: what if every successor is a dragon win? Then, will it return
+        #       when exact == None and best_move == None? I think so.
         utility = DRAGON_WIN
-        best_move = None  # Not sure
         exact = None  # Not sure
-        for successor in _successors:
-            new_state, new_expanded_state, new_move = successor
-            min_alpha_temp = alpha_beta_min(new_state, new_expanded_state,
-                                            evaluate, age, remaining_depth - 1,
-                                            alpha, beta)
-            if utility < min_alpha_temp[0][0]:
-                utility = min_alpha_temp[0][0]
+        best_move = None  # Not sure
+        for new_state, new_expanded_state, new_move in \
+                successors(state, expanded_state):
+            new_util, new_exact = \
+                alpha_beta_min(new_state, new_expanded_state, evaluate, age,
+                               remaining_depth - 1, alpha, beta)[0]
+            if utility < new_util:
+                utility = new_util
                 best_move = new_move
-                exact = min_alpha_temp[0][1]
-
+                exact = new_exact
             if utility >= beta:
                 return (utility, exact), best_move
             else:
@@ -198,8 +179,8 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
 def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
                    alpha=DRAGON_WIN, beta=KING_WIN):
     """
-    Performs minimax search with alpha beta pruning, returning a
-    ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
+    Performs the min part of minimax search with alpha beta pruning, returning
+    a ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
     <move>, <exact> is True iff <utility> is an exact value (as opposed to a
     heuristic estimate), and move is a move that will give a utility of
     <utility>. Note that <move> is None iff the given state is terminal, or
@@ -222,35 +203,26 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param alpha:
-    :type: alpha int
-    :param beta:
-    :type: beta int
+    :param alpha: the utility of the best (i.e. highest-utility) move found so
+        far for the king player
+    :type: alpha numeric
+    :param beta: the utility of the best (i.e. lowest-utility) move found so
+        far for the dragon player
+    :type: beta numeric
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
     global _table
     global num_term
     global num_leafs
-    global num_hits_and_other_stuff
+    global num_usable_hits
     global num_hits
-    global num_successors
-    global num_vs
-    # We calculate the current depth of the search by subtracting the
-    # remaining depth from the maximum depth.  Where the remaining depth is
-    # 0, we will be 'max_depth' down the search tree.
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[DEPTH_INDEX] >= remaining_depth:
-            print("value[DEPTH_INDEX] >= remaining_depth   => ",
-                  value[DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[AGE_INDEX] >= age:
-            print("value[_AGE_INDEX] >= age   => ",
-                  value[AGE_INDEX], ">=", age)
-        else:
-            num_hits_and_other_stuff += 1
+        if value[DEPTH_INDEX] >= remaining_depth and value[AGE_INDEX] >= age:
+            num_usable_hits += 1
             return ((value[SCORE_INDEX],
                      is_exact(value[EXACT_ALPHA_BETA_INDEX])),
                     value[MOVE_INDEX])
@@ -265,21 +237,20 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
         exact = False
         best_move = None
     else:
-        _successors = successors(state, expanded_state)
-        num_successors += len(_successors)
+        # TODO: what if every successor is a dragon win? Then, will it return
+        #       when exact == None and best_move == None? I think so.
         utility = KING_WIN
         best_move = None  # Not sure
         exact = None  # Not sure
-        for successor in _successors:
-            new_state, new_expanded_state, new_move = successor
-            max_alpha_temp = alpha_beta_max(new_state, new_expanded_state,
-                                            evaluate, age, remaining_depth - 1,
-                                            alpha, beta)
-            if utility > max_alpha_temp[0][0]:
-                utility = max_alpha_temp[0][0]
+        for new_state, new_expanded_state, new_move in \
+                successors(state, expanded_state):
+            new_util, new_exact = \
+                alpha_beta_max(new_state, new_expanded_state, evaluate, age,
+                               remaining_depth - 1, alpha, beta)[0]
+            if utility > new_util:
+                utility = new_util
                 best_move = new_move
-                exact = max_alpha_temp[0][1]
-
+                exact = new_exact
             if utility <= alpha:
                 return (utility, exact), best_move
             else:
@@ -316,15 +287,12 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
-
-    alpha = DRAGON_WIN
-    beta = KING_WIN
     if player_turn(state) == KING_PLAYER:
         return alpha_beta_max(state, expanded_state, evaluate, age,
-                              remaining_depth, alpha, beta)
+                              remaining_depth)
     else:
         return alpha_beta_min(state, expanded_state, evaluate, age,
-                              remaining_depth, alpha, beta)
+                              remaining_depth)
 
 
 if __name__ == "__main__":
@@ -345,5 +313,4 @@ if __name__ == "__main__":
     with open("minimax_depth_" + str(depth_limit) + ".json", 'w') as outfile:
         json.dump(_table.to_json_serializable(), outfile, indent=4)
     print("Final:", "util", u, "move", m, "terminal", num_term, "leafs",
-          num_leafs, "hits", num_hits, "hits_+_more", num_hits_and_other_stuff,
-          "successors", num_successors, "vs", num_vs)
+          num_leafs, "hits", num_hits, "hits_+_more", num_usable_hits)
