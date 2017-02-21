@@ -1,7 +1,6 @@
 from TranspositionTable import TranspositionTable
 from state import *
 
-_DEFAULT_SIZE = 1000000
 """
 Each table entry corresponds to one state of the game (in this context, a
 'state' is a board position as well as which player's turn it is).
@@ -24,7 +23,12 @@ where
         the third lowest-order bit is set iff <score> is an (exact or heuristic
             estimate) beta cutoff (for alpha beta minimax search)
 """
-_table = TranspositionTable(_DEFAULT_SIZE, TranspositionTable.always_replace)
+_table = None
+
+
+def init_table(max_size, replacement_policy):
+    global _table
+    _table = TranspositionTable(max_size, replacement_policy)
 
 _DEPTH_INDEX = 0
 _AGE_INDEX = 1

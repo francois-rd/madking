@@ -5,6 +5,7 @@ from time import sleep
 from evaluations import simple_eval
 from utils import record_move_search_time
 from search import iterative_deepening_search
+from TranspositionTable import TranspositionTable
 
 defaults = {
     'eval': {
@@ -16,7 +17,12 @@ defaults = {
         'alpha-beta': alpha_beta
     },
     'search_name': 'minimax',
-    'depth': DEFAULT_DEPTH_LIMIT
+    'depth': DEFAULT_DEPTH_LIMIT,
+    'replace': {
+        'always': TranspositionTable.always_replace
+    },
+    'replace_name': 'always',
+    'table-size': 1000000
 }
 
 
@@ -325,12 +331,20 @@ if __name__ == "__main__":
     _parser.add_argument("-d", "--depth", type=parse_positive_int,
                          default=defaults['depth'],
                          help="the depth limit of the search")
+    _parser.add_argument("-r", "--replace", default=defaults['replace_name'],
+                         choices=defaults['replace'].keys(),
+                         help="the replacement policy to use")
+    _parser.add_argument("-t", "--table-size", type=parse_positive_int,
+                         default=defaults['table-size'],
+                         help="the size of the transposition table")
 
     # Parse command line arguments.
     _args = _parser.parse_args()
     _evaluate = defaults['eval'][_args.eval]
     _search = defaults['search'][_args.search]
     _depth = _args.depth
+    _replacement = defaults['replace'][_args.replace]
+    _table_size = _args.table_size
 
     # Play the game.
     print("Welcome to madking!")
@@ -341,6 +355,7 @@ if __name__ == "__main__":
         if mode in ["s", "t", "a"]:
             break
         print("Invalid choice: '" + mode + "'")
+    init_table(_table_size, _replacement)
     if mode == "s":
         play_single_player(_evaluate, _search, _depth)
     elif mode == "t":
