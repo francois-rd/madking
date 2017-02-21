@@ -180,14 +180,14 @@ def get_count_threatened_units(state, expanded_state):
             # way this guard could be captured in the next turn, so move
             # on to the next guard.
             if threats == 2:
-                unoccuppied_neighbours = [x for x in guard_neighbours if x not in
-                    used_positions] # positions in map
+                unoccuppied_neighbours = \
+                        [i for i in guard_neighbours if i not in used_positions]
                 for unoccuppied_tile in unnoccupied_neighbours:
                     second_neighbours = \
                             get_orthogonal_tiles_around(unoccuppied_tile)
                     second_neighbours += \
                             get_diagonal_tiles_around(unoccuppied_tile)
-                    for n in second_neighbours: # n is a 2nd neighbour position
+                    for n in second_neighbours:
                         content = expanded_state[n]
                         # Increase the threat if there is a dragon on one
                         # of the neighbouring tiles, but only if the tile
