@@ -1,45 +1,7 @@
-from TranspositionTable import TranspositionTable
+from TranspositionTable import *
 from state import *
 
-"""
-Each table entry corresponds to one state of the game (in this context, a
-'state' is a board position as well as which player's turn it is).
-
-The table keys will be the hash strings returned by state.hash_state().
-The table values will be tuples of the form:
-    (<depth>, <age>, <score>, <move>, <exact-alpha-or-beta>)
-where
-    <depth> is the depth in number of edges of the explored subtree rooted at
-        the corresponding state
-    <age> is an age counter, which increases whenever a piece is captured
-    <score> is the utility value of the corresponding state
-    <move> is the move that leads to the best possible child state (i.e. the
-        move that will lead to the value of <score> being correct)
-    <exact-alpha-or-beta> is a byte, where
-        the first lowest-order bit is set iff <score> is an exact value (as
-            opposed to a heuristic estimate)
-        the second lowest-order bit is set iff <score> is an (exact or
-            heuristic estimate) alpha cutoff (for alpha beta minimax search)
-        the third lowest-order bit is set iff <score> is an (exact or heuristic
-            estimate) beta cutoff (for alpha beta minimax search)
-"""
 _table = None
-
-
-def init_table(max_size, replacement_policy):
-    global _table
-    _table = TranspositionTable(max_size, replacement_policy)
-
-_DEPTH_INDEX = 0
-_AGE_INDEX = 1
-_SCORE_INDEX = 2
-_MOVE_INDEX = 3
-_EXACT_ALPHA_BETA_INDEX = 4
-
-_EXACT_MASK = 0b00000001
-_ALPHA_MASK = 0b00000010
-_BETA_MASK = 0b00000100
-
 DEFAULT_DEPTH_LIMIT = 4
 
 num_term = 0
@@ -50,43 +12,16 @@ num_successors = 0
 num_vs = 0
 
 
-def _is_exact(exact_alpha_or_beta):
+def init_table(max_size, replacement_policy):
     """
-    Returns True iff the "exact" bit of 'exact_alpha_or_beta' is set.
+    Initializes the global transposition table with the given parameters.
 
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "exact" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
+    :param max_size:
+    :param replacement_policy:
+    :return:
     """
-    return bool(exact_alpha_or_beta & _EXACT_MASK)
-
-
-def _is_alpha_cutoff(exact_alpha_or_beta):
-    """
-    Returns True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
-    """
-    return bool(exact_alpha_or_beta & _ALPHA_MASK)
-
-
-def _is_beta_cutoff(exact_alpha_or_beta):
-    """
-    Returns True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
-    """
-    return bool(exact_alpha_or_beta & _BETA_MASK)
+    global _table
+    _table = TranspositionTable(max_size, replacement_policy)
 
 
 def minimax(state, expanded_state, evaluate, age, remaining_depth):
@@ -131,17 +66,17 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[_DEPTH_INDEX] >= remaining_depth:
-            print("value[_DEPTH_INDEX] >= remaining_depth   => ",
-                  value[_DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[_AGE_INDEX] >= age:
-                print("value[_AGE_INDEX] >= age   => ",
-                      value[_AGE_INDEX], ">=", age)
+        if not value[DEPTH_INDEX] >= remaining_depth:
+            print("value[DEPTH_INDEX] >= remaining_depth   => ",
+                  value[DEPTH_INDEX], ">=", remaining_depth)
+        elif not value[AGE_INDEX] >= age:
+                print("value[AGE_INDEX] >= age   => ",
+                      value[AGE_INDEX], ">=", age)
         else:
             num_hits_and_other_stuff += 1
-            return ((value[_SCORE_INDEX],
-                    _is_exact(value[_EXACT_ALPHA_BETA_INDEX])),
-                    value[_MOVE_INDEX])
+            return ((value[SCORE_INDEX],
+                    is_exact(value[EXACT_ALPHA_BETA_INDEX])),
+                    value[MOVE_INDEX])
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -169,7 +104,7 @@ def minimax(state, expanded_state, evaluate, age, remaining_depth):
 
 
 def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
-               alpha=DRAGON_WIN, beta=KING_WIN):
+                   alpha=DRAGON_WIN, beta=KING_WIN):
     """
     Performs max search with alpha beta pruning, returning a
     ((<utility>, <exact>), <move>) pair, where <utility> is the utility of
@@ -216,17 +151,17 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[_DEPTH_INDEX] >= remaining_depth:
-            print("value[_DEPTH_INDEX] >= remaining_depth   => ",
-                  value[_DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[_AGE_INDEX] >= age:
-            print("value[_AGE_INDEX] >= age   => ",
-                  value[_AGE_INDEX], ">=", age)
+        if not value[DEPTH_INDEX] >= remaining_depth:
+            print("value[DEPTH_INDEX] >= remaining_depth   => ",
+                  value[DEPTH_INDEX], ">=", remaining_depth)
+        elif not value[AGE_INDEX] >= age:
+            print("value[AGE_INDEX] >= age   => ",
+                  value[AGE_INDEX], ">=", age)
         else:
             num_hits_and_other_stuff += 1
-            return ((value[_SCORE_INDEX],
-                     _is_exact(value[_EXACT_ALPHA_BETA_INDEX])),
-                    value[_MOVE_INDEX])
+            return ((value[SCORE_INDEX],
+                     is_exact(value[EXACT_ALPHA_BETA_INDEX])),
+                    value[MOVE_INDEX])
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -241,12 +176,13 @@ def alpha_beta_max(state, expanded_state, evaluate, age, remaining_depth,
         _successors = successors(state, expanded_state)
         num_successors += len(_successors)
         utility = DRAGON_WIN
-        best_move = None # Not sure
-        exact = None # Not sure
+        best_move = None  # Not sure
+        exact = None  # Not sure
         for successor in _successors:
             new_state, new_expanded_state, new_move = successor
             min_alpha_temp = alpha_beta_min(new_state, new_expanded_state,
-                                    evaluate, age,remaining_depth - 1, alpha, beta)
+                                            evaluate, age, remaining_depth - 1,
+                                            alpha, beta)
             if utility < min_alpha_temp[0][0]:
                 utility = min_alpha_temp[0][0]
                 best_move = new_move
@@ -307,17 +243,17 @@ def alpha_beta_min(state, expanded_state, evaluate, age, remaining_depth,
     value = _table.get(hash_string)
     if value is not None:
         num_hits += 1
-        if not value[_DEPTH_INDEX] >= remaining_depth:
-            print("value[_DEPTH_INDEX] >= remaining_depth   => ",
-                  value[_DEPTH_INDEX], ">=", remaining_depth)
-        elif not value[_AGE_INDEX] >= age:
+        if not value[DEPTH_INDEX] >= remaining_depth:
+            print("value[DEPTH_INDEX] >= remaining_depth   => ",
+                  value[DEPTH_INDEX], ">=", remaining_depth)
+        elif not value[AGE_INDEX] >= age:
             print("value[_AGE_INDEX] >= age   => ",
-                  value[_AGE_INDEX], ">=", age)
+                  value[AGE_INDEX], ">=", age)
         else:
             num_hits_and_other_stuff += 1
-            return ((value[_SCORE_INDEX],
-                     _is_exact(value[_EXACT_ALPHA_BETA_INDEX])),
-                    value[_MOVE_INDEX])
+            return ((value[SCORE_INDEX],
+                     is_exact(value[EXACT_ALPHA_BETA_INDEX])),
+                    value[MOVE_INDEX])
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -377,10 +313,6 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
         state, the 'evaluate' function is applied to the state, instead of
         performing a recursive call to minimax
     :type remaining_depth: int
-    :param alpha:
-    :type: alpha int
-    :param beta:
-    :type: beta int
     :return: a ((<utility>, <exact>), <move>) pair
     :rtype: ((numeric, bool), (byte, byte))
     """
@@ -389,11 +321,10 @@ def alpha_beta(state, expanded_state, evaluate, age, remaining_depth):
     beta = KING_WIN
     if player_turn(state) == KING_PLAYER:
         return alpha_beta_max(state, expanded_state, evaluate, age,
-                              remaining_depth,alpha, beta)
+                              remaining_depth, alpha, beta)
     else:
         return alpha_beta_min(state, expanded_state, evaluate, age,
                               remaining_depth, alpha, beta)
-
 
 
 if __name__ == "__main__":

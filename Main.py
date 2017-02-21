@@ -19,9 +19,27 @@ defaults = {
     'search_name': 'minimax',
     'depth': DEFAULT_DEPTH_LIMIT,
     'replace': {
-        'always': TranspositionTable.always_replace
+        'overall-oldest': TranspositionTable.replace_overall_oldest,
+        'older-else-overall-oldest':
+            TranspositionTable.replace_older_value_or_else_overall_oldest,
+        'older-else-new':
+            TranspositionTable.replace_older_value_or_else_new_entry,
+        'shallower-else-some-shallower':
+            TranspositionTable.replace_shallower_value_or_else_some_shallower,
+        'shallower-else-overall-oldest':
+            TranspositionTable.replace_shallower_value_or_else_overall_oldest,
+        'shallower-else-new':
+            TranspositionTable.replace_shallower_value_or_else_new_entry,
+        'smaller-else-some-smaller':
+            TranspositionTable.replace_smaller_subtree_or_else_some_smaller,
+        'smaller-else-overall-oldest':
+            TranspositionTable.replace_smaller_subtree_or_else_overall_oldest,
+        'smaller-else-new':
+            TranspositionTable.replace_smaller_subtree_or_else_new_entry,
+        'two-deep': TranspositionTable.replace_two_deep,
+        'two-big': TranspositionTable.replace_two_big
     },
-    'replace_name': 'always',
+    'replace_name': 'overall-oldest',
     'table-size': 1000000
 }
 

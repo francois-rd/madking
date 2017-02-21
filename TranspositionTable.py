@@ -1,9 +1,84 @@
 from collections import OrderedDict
 
+"""
+Each table entry corresponds to one state of the game (in this context, a
+'state' is a board position as well as which player's turn it is).
+
+The table keys will be the hash strings returned by state.hash_state().
+The table values will be tuples of the form:
+    (<depth>, <age>, <score>, <move>, <exact-alpha-or-beta>)
+where
+    <depth> is the depth in number of edges of the explored subtree rooted at
+        the corresponding state
+    <age> is an age counter, which increases whenever a piece is captured
+    <score> is the utility value of the corresponding state
+    <move> is the move that leads to the best possible child state (i.e. the
+        move that will lead to the value of <score> being correct)
+    <exact-alpha-or-beta> is a byte, where
+        the first lowest-order bit is set iff <score> is an exact value (as
+            opposed to a heuristic estimate)
+        the second lowest-order bit is set iff <score> is an (exact or
+            heuristic estimate) alpha cutoff (for alpha beta minimax search)
+        the third lowest-order bit is set iff <score> is an (exact or heuristic
+            estimate) beta cutoff (for alpha beta minimax search)
+"""
+
+DEPTH_INDEX = 0
+AGE_INDEX = 1
+SCORE_INDEX = 2
+MOVE_INDEX = 3
+EXACT_ALPHA_BETA_INDEX = 4
+
+_EXACT_MASK = 0b00000001
+_ALPHA_MASK = 0b00000010
+_BETA_MASK = 0b00000100
+
+
+def is_exact(exact_alpha_or_beta):
+    """
+    Returns True iff the "exact" bit of 'exact_alpha_or_beta' is set.
+
+    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
+        TranspositionTable value
+    :type exact_alpha_or_beta: byte
+    :return: True iff the "exact" bit of 'exact_alpha_or_beta' is set
+    :rtype: bool
+    """
+    return bool(exact_alpha_or_beta & _EXACT_MASK)
+
+
+def is_alpha_cutoff(exact_alpha_or_beta):
+    """
+    Returns True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set.
+
+    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
+        TranspositionTable value
+    :type exact_alpha_or_beta: byte
+    :return: True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set
+    :rtype: bool
+    """
+    return bool(exact_alpha_or_beta & _ALPHA_MASK)
+
+
+def is_beta_cutoff(exact_alpha_or_beta):
+    """
+    Returns True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set.
+
+    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
+        TranspositionTable value
+    :type exact_alpha_or_beta: byte
+    :return: True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set
+    :rtype: bool
+    """
+    return bool(exact_alpha_or_beta & _BETA_MASK)
+
 
 class TranspositionTable:
     """
     A transposition table to memoize game states explored through game search.
+    The table's entries are ordered by order of insertion, so the first entry
+    is the one that was inserted longest ago, while the last entry is the one
+    that was inserted most recently.
     """
 
     def __init__(self, max_size, replacement_policy):
@@ -40,13 +115,9 @@ class TranspositionTable:
         replacement policy is used to find an existing entry to replace. The
         policy may also determined that no entry should be replaced, in which
         case the new entry is simply rejected (i.e. not added to the table).
-        Returns the value of the removed entry, or the given value it was
-        rejected, or None if no the table was not already full.
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the value of the removed entry, or the given value it was
-            rejected, or None if no the table was not already full
         """
         self._number_attempted_mutations += 1
         if self._current_size == self._max_size:
@@ -54,14 +125,13 @@ class TranspositionTable:
                 self._replacement_policy(self, key, value)
             if key_to_remove == key and value_to_remove == value:
                 self._number_entries_rejected += 1
-                return value  # Return the new value.
-            self._number_entries_replaced += 1
-            removed_value = self._table.pop(key_to_remove)
+            else:
+                self._number_entries_replaced += 1
+                del self._table[key_to_remove]
+                self._table[key] = value
         else:
             self._current_size += 1
-            removed_value = None
-        self._table[key] = value
-        return removed_value
+            self._table[key] = value
 
     def __getitem__(self, key):
         """
@@ -145,10 +215,175 @@ class TranspositionTable:
 
     # ========== REPLACEMENT POLICIES ========== #
 
-    def always_replace(self, key, value):
+    def replace_overall_oldest(self, key, value):
         """
-        Returns the first (<key>, <value>) pair in this TranspositionTable.
+        Returns the first/oldest (<key>, <value>) pair in the given
+        TranspositionTable.
 
-        :return: the first (<key>, <value>) pair in this TranspositionTable
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the first/oldest entry in the given TranspositionTable
         """
-        return next(self._table.items())  # Replace oldest.
+        return next(self._table.items())
+
+    def replace_older_value_or_else_overall_oldest(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned. Otherwise, the first/
+        oldest (<key>, <value>) pair in the given TranspositionTable is
+        returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key, or the first/oldest entry
+            in the TranspositionTable if no such entry exists
+        """
+        value_already_in_table = self._table.get(key)
+        if value_already_in_table is not None:
+            return key, value_already_in_table
+        return next(self._table.items())
+
+    def replace_older_value_or_else_new_entry(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned. Otherwise, the new
+        entry is returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key, or the new entry if no such
+            entry exists
+        """
+        value_already_in_table = self._table.get(key)
+        if value_already_in_table is not None:
+            return key, value_already_in_table
+        return key, value
+
+    def replace_shallower_value_or_else_some_shallower(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the depth of the
+        new entry is greater than the depth of the existing entry. Otherwise,
+        the first (<key>, <value>) pair in the given TranspositionTable that
+        has depth less than that of the new entry is returned (the new entry is
+        returned iff it is shallower than every other entry in the table).
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if it is shallower than the
+            new entry, or the first entry in the TranspositionTable that is
+            shallower than the new entry, or else the new entry itself if no
+            such entry exists
+        """
+        depth = value[DEPTH_INDEX]
+        value_already_in_table = self._table.get(key)
+        if value_already_in_table is not None:
+            if depth > value_already_in_table[DEPTH_INDEX]:
+                return key, value_already_in_table
+        for k, v in self._table.items():
+            if depth > v[DEPTH_INDEX]:
+                return k, v
+        return key, value
+
+    def replace_shallower_value_or_else_overall_oldest(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the depth of the
+        new entry is greater than the depth of the existing entry. Otherwise,
+        the first/oldest (<key>, <value>) pair in the given TranspositionTable
+        is returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if it is shallower than the
+            new entry, or the first/oldest entry in the TranspositionTable if
+            no such entry exists or it is not shallower
+        """
+        value_already_in_table = self._table.get(key)
+        if value_already_in_table is not None:
+            if value[DEPTH_INDEX] > value_already_in_table[DEPTH_INDEX]:
+                return key, value_already_in_table
+        return next(self._table.items())
+
+    def replace_shallower_value_or_else_new_entry(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the depth of the
+        new entry is greater than the depth of the existing entry. Otherwise,
+        the new entry is returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if it is shallower than the
+            new entry, or the new entry if no such entry exists or it is not
+            shallower
+        """
+        value_already_in_table = self._table.get(key)
+        if value_already_in_table is not None:
+            if value[DEPTH_INDEX] > value_already_in_table[DEPTH_INDEX]:
+                return key, value_already_in_table
+        return key, value
+
+    def replace_smaller_subtree_or_else_some_smaller(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the size of the
+        subtree rooted at the new entry is greater than the size of the subtree
+        rooted at the existing entry. Otherwise, the first (<key>, <value>)
+        pair in the given TranspositionTable whose size is less than that of
+        the new entry is returned (so the new entry is returned iff it is
+        smaller than every other entry in the table).
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if the subtree rooted at it
+            is smaller than that of the new entry, or the first entry in the
+            TranspositionTable whose size is less than that of the new entry,
+            or else the new entry itself if no such entry exists
+        """
+        pass
+
+    def replace_smaller_subtree_or_else_overall_oldest(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the size of the
+        subtree rooted at the new entry is greater than the size of the subtree
+        rooted at the existing entry. Otherwise, the first/oldest
+        (<key>, <value>) pair in the given TranspositionTable is returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if the subtree rooted at it
+            is smaller than that of the new entry, or the first/oldest entry in
+            the TranspositionTable if no such entry exists or it is not smaller
+        """
+        pass
+
+    def replace_smaller_subtree_or_else_new_entry(self, key, value):
+        """
+        If the table already contains an entry for the given key, then the
+        (<key>, <value>) pair of that entry is returned iff the size of the
+        subtree rooted at the new entry is greater than the size of the subtree
+        rooted at the existing entry. Otherwise, the new entry is returned.
+
+        :param key: the key of the new table entry
+        :param value: the value of the new table entry
+        :return: the table entry for the given key if the subtree rooted at it
+            is smaller than that of the new entry, or the new entry if no such
+            entry exists or it is not smaller
+        """
+        pass
+
+    def replace_two_deep(self, key, value):
+        """
+        From: Breucker, D., et al. (1998).
+        """
+        # TODO: is this even worth implementing?
+        pass
+
+    def replace_two_big(self, key, value):
+        """
+        From: Breucker, D., et al. (1998).
+        """
+        # TODO: is this even worth implementing?
+        pass
