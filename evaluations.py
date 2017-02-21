@@ -56,14 +56,15 @@ def get_tiles_around(pos):
 
 def get_eight_tiles(pos):
     """
-    Get the 8 neighbours around 1 specfic board position
+    Get the eight neighbouring indices of the board index 'pos'.  The values
+    calculated for the upper right, upper left, lower right and lower left
+    indices are not currently guaranteed to work with variable board sizes.
     
     :param pos: the interested board postion
     :type pos: int
     :return: a list of integer containing index of board positions
     :rtype: [int]
     """
-    tiles = []
     tiles = get_tiles_around(pos)
     upper_left = pos - (BOARD_NUM_RANKS-1)
     upper_right = pos + (BOARD_NUM_RANKS+1)
@@ -185,10 +186,7 @@ def get_count_threatened_tiles(state, expanded_state):
                             threats += 1
         if threats >= 3:
             count_threatened_tiles -= 1
-
     return count_threatened_tiles
-
-
 
 
 def is_king_at_risk(king_pos, expanded_state):
