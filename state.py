@@ -568,26 +568,34 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
             # King escapes by capturing or having a guard capture a dragon so
             # that there are just 2 dragons surrounding him. These are all
             # forced moves because if no dragon is captured, the king is.
+            # Another possibility is that, if it's a guard blocking the king,
+            # the guard can actually just move out of the way, so that the
+            # fourth side becomes empty.
             first_dragon_forced_moves = \
                 _moves_capturing_dragon_by_king_or_guard(expanded_state,
                                                          first_dragon_idx)
-            first_dragon_can_be_captured = len(first_dragon_forced_moves) > 0
             second_dragon_forced_moves = \
                 _moves_capturing_dragon_by_king_or_guard(expanded_state,
                                                          second_dragon_idx)
-            second_dragon_can_be_captured = len(second_dragon_forced_moves) > 0
             third_dragon_forced_moves = \
                 _moves_capturing_dragon_by_king_or_guard(expanded_state,
                                                          third_dragon_idx)
-            third_dragon_can_be_captured = len(third_dragon_forced_moves) > 0
-            some_dragon_can_be_captured = first_dragon_can_be_captured or \
-                second_dragon_can_be_captured or third_dragon_can_be_captured
             forced_moves = first_dragon_forced_moves
             forced_moves.extend(second_dragon_forced_moves)
             forced_moves.extend(third_dragon_forced_moves)
-            if len(forced_moves) == 0:
+            # Now, check if it's a guard, and if the guard can move.
+            if at_fourth_side == GUARD:
+                # Since the guard can't capture a dragon (by the above), then
+                # only the "basic" orthogonal moves actually matter.
+                moves = _all_orthogonal_moves(expanded_state,
+                                              unknown_content_idx)
+                forced_moves.extend([(unknown_content_idx, to_tile_idx) for
+                                     _, is_valid, to_tile_idx, _ in
+                                     moves.values() if is_valid])
+            king_is_captured = len(forced_moves) == 0
+            if king_is_captured:
                 forced_moves = None
-            return not some_dragon_can_be_captured, True, forced_moves
+            return king_is_captured, True, forced_moves
         else:  # at_fourth_side == DRAGON. So unknown_content_idx has a dragon.
             # King escapes by capturing a dragon and moving to where the dragon
             # was. This leaves the tile he was on empty, implying that the next
@@ -595,26 +603,22 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
             # captured. If it's the guard that captures, then the king is still
             # 4-sides surrounded, and so would be captured right away.
             forced_moves = []
-            some_dragon_can_be_captured_by_king = False
             if _is_dragon_surrounded_by_king_and_guard(expanded_state,
                                                        first_dragon_idx):
-                some_dragon_can_be_captured_by_king = True
                 forced_moves.append((king_tile_idx, first_dragon_idx))
             if _is_dragon_surrounded_by_king_and_guard(expanded_state,
                                                        second_dragon_idx):
-                some_dragon_can_be_captured_by_king = True
                 forced_moves.append((king_tile_idx, second_dragon_idx))
             if _is_dragon_surrounded_by_king_and_guard(expanded_state,
                                                        third_dragon_idx):
-                some_dragon_can_be_captured_by_king = True
                 forced_moves.append((king_tile_idx, third_dragon_idx))
             if _is_dragon_surrounded_by_king_and_guard(expanded_state,
                                                        unknown_content_idx):
-                some_dragon_can_be_captured_by_king = True
                 forced_moves.append((king_tile_idx, unknown_content_idx))
-            if len(forced_moves) == 0:
+            king_is_captured = len(forced_moves) == 0
+            if king_is_captured:
                 forced_moves = None
-            return not some_dragon_can_be_captured_by_king, True, forced_moves
+            return king_is_captured, True, forced_moves
 
 
 def _is_king_captured(state, expanded_state, king_tile_idx):
