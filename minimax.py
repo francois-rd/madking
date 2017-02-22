@@ -188,11 +188,14 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
         exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
-        utility = DRAGON_WIN
-        exact = None  # Not sure
-        best_move = None  # Not sure
-        for new_state, new_expanded_state, new_move in \
-                successors(state, expanded_state):
+        # Initialize utility, exact, and best_move with first successor.
+        _successors = successors(state, expanded_state).__iter__()
+        first_state, first_expanded_state, best_move = next(_successors)
+        utility, exact = alpha_beta_min(first_state, first_expanded_state,
+                                        evaluate, remaining_depth - 1, alpha,
+                                        beta)[0]
+        # Go through the remaining successors to find the true best.
+        for new_state, new_expanded_state, new_move in _successors:
             new_util, new_exact = \
                 alpha_beta_min(new_state, new_expanded_state, evaluate,
                                remaining_depth - 1, alpha, beta)[0]
@@ -202,15 +205,11 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
                 exact = new_exact
             if utility >= beta:
                 _table[hash_string] = (remaining_depth, utility, best_move,
-                                       set_flags(exact=exact, beta_cutoff=True))
+                                       set_flags(beta_cutoff=True))
                 return (utility, exact), best_move
             else:
                 alpha = max(alpha, utility)
-            # If all moves are equal, just return the first successor
-            if exact is None and best_move is None:
-                exact = new_exact
-                best_move = new_move
-
+        # No beta cutoff was possible.
         _table[hash_string] = (remaining_depth, utility, best_move,
                                set_flags(exact=exact))
     return (utility, exact), best_move
@@ -279,11 +278,14 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
         exact = True  # Since the evaluation is a number, not a cutoff.
         best_move = None
     else:
-        utility = KING_WIN
-        best_move = None  # Not sure
-        exact = None  # Not sure
-        for new_state, new_expanded_state, new_move in \
-                successors(state, expanded_state):
+        # Initialize utility, exact, and best_move with first successor.
+        _successors = successors(state, expanded_state).__iter__()
+        first_state, first_expanded_state, best_move = next(_successors)
+        utility, exact = alpha_beta_max(first_state, first_expanded_state,
+                                        evaluate, remaining_depth - 1, alpha,
+                                        beta)[0]
+        # Go through the remaining successors to find the true best.
+        for new_state, new_expanded_state, new_move in _successors:
             new_util, new_exact = \
                 alpha_beta_max(new_state, new_expanded_state, evaluate,
                                remaining_depth - 1, alpha, beta)[0]
@@ -293,16 +295,11 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
                 exact = new_exact
             if utility <= alpha:
                 _table[hash_string] = (remaining_depth, utility, best_move,
-                                       set_flags(exact=exact,
-                                                 alpha_cutoff=True))
+                                       set_flags(alpha_cutoff=True))
                 return (utility, exact), best_move
             else:
                 beta = min(beta, utility)
-            # If all moves are equal, just return the first successor
-            if exact is None and best_move is None:
-                exact = new_exact
-                best_move = new_move
-
+        # No alpha cutoff was possible.
         _table[hash_string] = (remaining_depth, utility, best_move,
                                set_flags(exact=exact))
     return (utility, exact), best_move
