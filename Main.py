@@ -80,11 +80,11 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     :return: a valid move as a (<from-tile-index>, <to-tile-index>) pair
@@ -120,10 +120,10 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
             print(".", end='', flush=True)
         print('', flush=True)
         thread.join()
-        ((utility, exact), move), time = thread.result()
+        (utility, move), time = thread.result()
         print("After", time, "seconds, the chosen move is:",
               string_position(move[0]) + string_position(move[1]))
-        print("Move utility:", utility, "(exact)" if exact else "(estimated)")
+        print("Move utility:", utility)
         record_move_search_time(time, evaluate, search, max_depth)
         return move
 
@@ -151,11 +151,11 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     :return: True iff the game has reached a terminal state
@@ -191,11 +191,11 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     :param pause_for: number of seconds to pause for after getting the move
@@ -224,11 +224,11 @@ def play_single_player(evaluate, search, max_depth):
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     """
@@ -256,11 +256,11 @@ def play_two_player(evaluate, search, max_depth):
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     """
@@ -279,11 +279,11 @@ def play_ai_only(evaluate, search, max_depth):
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :param search: a search function taking a state, an expanded state, an
         evaluation function, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
+        (<utility>, <move>) pair
     :type search: (array of bytes,
                    dict(byte, char),
                    (array of bytes, dict(byte, char)) => numeric,
-                   int) => ((numeric, bool), (byte, byte))
+                   int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     """

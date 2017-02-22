@@ -13,13 +13,11 @@ where
     <score> is the utility value of the corresponding state
     <move> is the move that leads to the best possible child state (i.e. the
         move that will lead to the value of <score> being correct)
-    <exact-alpha-or-beta> is a byte, where
-        the first lowest-order bit is set iff <score> is an exact value (as
-            opposed to an alpha or beta cutoff)
-        the second lowest-order bit is set iff <score> is an alpha cutoff (for
-            alpha beta minimax search)
-        the third lowest-order bit is set iff <score> is a beta cutoff (for
-            alpha beta minimax search)
+    <exact-alpha-or-beta> (used for minimax search with alpha beta pruning) is
+        a byte that equals the constant
+            EXACT iff <score> is an exact value
+            ALPHA_CUTOFF iff <score> is an alpha cutoff
+            BETA_CUTOFF iff <score> is a beta cutoff
 """
 
 DEPTH_INDEX = 0
@@ -27,122 +25,9 @@ SCORE_INDEX = 1
 MOVE_INDEX = 2
 FLAGS_INDEX = 3
 
-_EXACT_MASK = 0b00000001
-_ALPHA_MASK = 0b00000010
-_BETA_MASK = 0b00000100
-
-
-def set_flags(exact=False, alpha_cutoff=False, beta_cutoff=False):
-    """
-    A convenience function that does the equivalent of applying each of
-    'set_exact', 'set_alpha_cutoff', and 'set_beta_cutoff' in turn (but much
-    more efficiently!!!) and then returning the overall result. This function
-    should be called over the individual ones whenever possible.
-
-    :param exact: the new value for the "exact" bit
-    :type exact: bool
-    :param alpha_cutoff: the new value for the "alpha cutoff" bit
-    :type alpha_cutoff: bool
-    :param beta_cutoff: the new value for the "beta cutoff" bit
-    :type beta_cutoff: bool
-    :return: a copy of 'exact_alpha_or_beta' with each of the "exact", "alpha
-        cutoff", and "beta cutoff" bits potentially modified
-    :rtype: byte
-    """
-    return (((beta_cutoff << 1) | alpha_cutoff) << 1) | exact
-
-
-def is_exact(exact_alpha_or_beta):
-    """
-    Returns True iff the "exact" bit of 'exact_alpha_or_beta' is set.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "exact" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
-    """
-    return bool(exact_alpha_or_beta & _EXACT_MASK)
-
-
-def set_exact(exact_alpha_or_beta, exact):
-    """
-    Returns a copy of 'exact_alpha_or_beta', modified so that the "exact" bit
-    is set if 'exact' is True, and cleared if 'exact' is False.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :param exact: the new value for the "exact" bit
-    :type exact: bool
-    :return: a copy of 'exact_alpha_or_beta' with the "exact" bit potentially
-        modified
-    :rtype: byte
-    """
-    return ((exact_alpha_or_beta >> 1) << 1) | exact
-
-
-def is_alpha_cutoff(exact_alpha_or_beta):
-    """
-    Returns True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "alpha cutoff" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
-    """
-    return bool(exact_alpha_or_beta & _ALPHA_MASK)
-
-
-def set_alpha_cutoff(exact_alpha_or_beta, alpha_cutoff):
-    """
-    Returns a copy of 'exact_alpha_or_beta', modified so that the "alpha
-    cutoff" bit is set if 'alpha_cutoff' is True, and cleared if 'alpha_cutoff'
-    is False.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :param alpha_cutoff: the new value for the "alpha cutoff" bit
-    :type alpha_cutoff: bool
-    :return: a copy of 'exact_alpha_or_beta' with the "alpha cutoff" bit
-        potentially modified
-    :rtype: byte
-    """
-    return exact_alpha_or_beta ^ ((-alpha_cutoff ^ int(exact_alpha_or_beta))
-                                  & _ALPHA_MASK)
-
-
-def is_beta_cutoff(exact_alpha_or_beta):
-    """
-    Returns True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :return: True iff the "beta cutoff" bit of 'exact_alpha_or_beta' is set
-    :rtype: bool
-    """
-    return bool(exact_alpha_or_beta & _BETA_MASK)
-
-
-def set_beta_cutoff(exact_alpha_or_beta, beta_cutoff):
-    """
-    Returns a copy of 'exact_alpha_or_beta', modified so that the "beta cutoff"
-    bit is set if 'beta_cutoff' is True, and cleared if 'beta_cutoff' is False.
-
-    :param exact_alpha_or_beta: the <exact-alpha-or-beta> field of a
-        TranspositionTable value
-    :type exact_alpha_or_beta: byte
-    :param beta_cutoff: the new value for the "beta cutoff" bit
-    :type beta_cutoff: bool
-    :return: a copy of 'exact_alpha_or_beta' with the "beta cutoff" bit
-        potentially modified
-    :rtype: byte
-    """
-    return exact_alpha_or_beta ^ ((-beta_cutoff ^ int(exact_alpha_or_beta))
-                                  & _BETA_MASK)
+EXACT = 0b00000000
+ALPHA_CUTOFF = 0b00000001
+BETA_CUTOFF = 0b00000010
 
 
 class TranspositionTable:
