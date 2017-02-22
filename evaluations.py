@@ -24,12 +24,12 @@ def simple_eval(state, expanded_state):
     guard_piece_score = round(num_guards * guard_weight) + king_value
     controlled_tiles = get_count_controlled_tiles(expanded_state)
     threatened_units = get_count_threatened_units(state, expanded_state)
-    king_threat = get_king_risk_level(expanded_state)
     king_pos = get_king_tile_index(state)
+    king_threat = get_king_risk_level(king_pos, expanded_state)
     king_prog = get_king_progress(king_pos)
     score = (guard_piece_score - dragon_piece_score) + \
         controlled_tiles + \
-        threatened_tiles + \
+        threatened_units + \
         king_prog + \
         king_threat
     return score
@@ -182,7 +182,7 @@ def get_count_threatened_units(state, expanded_state):
             if threats == 2:
                 unoccuppied_neighbours = \
                         [i for i in guard_neighbours if i not in used_positions]
-                for unoccuppied_tile in unnoccupied_neighbours:
+                for unoccuppied_tile in unoccuppied_neighbours:
                     second_neighbours = \
                             get_orthogonal_tiles_around(unoccuppied_tile)
                     second_neighbours += \
@@ -213,7 +213,8 @@ def get_king_risk_level(king_pos, expanded_state):
     :return: A negative integer indicating the level of risk for the king.
     :rtype: int
     """
-    surrounding_tiles = get_eight_tiles(king_pos)
+    surrounding_tiles = get_orthogonal_tiles_around(king_pos)
+    surrounding_tiles += get_diagonal_tiles_around(king_pos)
     num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
     num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
     return num_guards - num_dragons
