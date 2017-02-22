@@ -250,6 +250,8 @@ def _test():
     king_prog = get_king_progress(king_pos)
     print("king_prog:", king_prog)
     print("total: ", guard_score - dragon_score + controlled_tiles + king_prog)
+    print("value of simple_eval() on initial game state:",
+          simple_eval(state, expanded_state))
 
 
 if __name__ == "__main__":
