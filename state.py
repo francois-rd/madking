@@ -58,8 +58,8 @@ GUARD = 'G'
 DRAGON = 'D'
 EMPTY = '.'
 OFF_THE_BOARD = ' '
-KING_WIN = sys.maxsize
-DRAGON_WIN = -sys.maxsize
+KING_WIN = sys.maxsize - 1
+DRAGON_WIN = -sys.maxsize + 1
 DRAW = 0
 
 DEFAULT_KING_PLUS_META_STATE_BYTE = 0b01110000
