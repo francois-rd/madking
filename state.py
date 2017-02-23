@@ -1010,6 +1010,8 @@ def _all_valid_moves_for_king(expanded_state, king_tile_idx):
     return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
             moves.values() if is_valid]
 
+def count_king_moves(expanded_state,king_tile_idx):
+    return len(_all_valid_moves_for_king(expanded_state, king_tile_idx))
 
 def _all_valid_moves_for_guard(expanded_state, tile_idx):
     """

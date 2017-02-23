@@ -22,10 +22,12 @@ def simple_eval(state, expanded_state):
     num_guards = len(get_live_guards_enumeration(state))
     dragon_piece_score = num_dragons * dragon_weight
     guard_piece_score = round(num_guards * guard_weight) + king_value
-    controlled_tiles = get_count_controlled_tiles(expanded_state)
-    threatened_units = get_count_threatened_units(state, expanded_state)
+    controlled_tiles = get_king_controlled_tiles(expanded_state) -\
+                        get_dragon_controlled_tiles(expanded_state)
+    threatened_units = get_dragon_threatened(state, expanded_state)-\
+                        get_guard_threatened(state,expanded_state)
     king_pos = get_king_tile_index(state)
-    king_threat = get_king_risk_level(king_pos, expanded_state)
+    king_threat = get_king_risk_level(expanded_state,king_pos)
     king_prog = get_king_progress(king_pos)
     score = (guard_piece_score - dragon_piece_score) + \
         controlled_tiles + \
@@ -34,6 +36,90 @@ def simple_eval(state, expanded_state):
         king_threat
     return score
 
+def split_weight_eval(state, expanded_state):
+    """
+    Returns a heuristic estimate of the utility value of the given state,
+    according to the rule that the utility should be positive when the board
+    is in favour of  the king player, and negative when it is in favour of the
+    dragon player.
+    Utility = Sum of KING features - Sum of Dragon features
+    
+    :param state: the current state for evaluation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte,char)
+    :return: a heuristic estimate of the utility value of the given state
+    :rtyep: a numeric value   
+    """
+    return get_king_features(state, expanded_state) \
+           - get_dragon_features(state, expanded_state)
+
+def get_king_features(state, expanded_state):
+    """
+    List of KING features: GUARDS alive, KING progress,
+    KING controlled tiles, threatened DRAGONS by GUARD and KING,
+    KING risk level, threatened GUARDS by DRAGONS.
+    Each of the feature is multiplied to a specific weight.
+    The return value is a combination of each feature * its weight
+
+    :param state: the current state for evaluation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte,char)
+    :return: an estimated utility value for DRAGON with a given state
+    :rtype: a numeric value
+    """
+    w_guard_alive = 1
+    w_king_progress = 1
+    w_king_controlled_tiles = 1
+    w_dragon_threatened = 1
+    w_king_risk_level = 1
+    w_guard_threatened = 1
+    king_pos = get_king_tile_index(state)
+    
+    return (w_guard_alive * len(get_live_guards_enumeration(state))\
+            + w_king_progress * get_king_progress(king_pos)\
+            + w_king_controlled_tiles *\
+                     get_king_controlled_tiles(expanded_state)\
+            + w_dragon_threatened *\
+                     get_dragon_threatened(state,expanded_state)\
+            - w_king_risk_level *\
+                    get_king_risk_level(expanded_state,king_pos)\
+            - w_guard_threatened *\
+                    get_guard_threatened(state,expanded_state))
+    
+def get_dragon_features(state, expanded_state):
+    """
+    List of DRAGON features: DRAGONS alive, DRAGON controlled tiles,
+    threatened DRAGONS by GUARD and KING, threatened GUARDS by DRAGONS
+    KING risk level.
+    Each of the feature is multiplied to a specific weight.
+    The return value is a combination of each feature * its weight
+
+    :param state: the current state for evaluation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte,char)
+    :return: an estimated utility value for DRAGON with a given state
+    :rtype: a numeric value
+    
+    """
+    w_dragon_alive = 1
+    w_dragon_controlled_tiles = 1
+    w_dragon_threatened = 1
+    w_king_risk_level = 1
+    w_guard_threatened = 1
+    
+    return (w_dragon_alive * len(get_live_dragon_enumeration(state))\
+            + w_dragon_controlled_tiles *\
+                     get_dragon_controlled_tiles(expanded_state)\
+            - w_dragon_threatened *\
+                     get_dragon_threatened(state,expanded_state)\
+            + w_king_risk_level *\
+                     get_king_risk_level(expanded_state,\
+                                get_king_tile_index(state))\
+            + w_guard_threatened *\
+                    get_guard_threatened(state,expanded_state))
 
 def get_orthogonal_tiles_around(tile_idx):
     """
@@ -108,16 +194,13 @@ def get_king_progress(king_tile_idx):
     return (BOARD_NUM_RANKS - 1) - (king_tile_idx % BOARD_NUM_RANKS)
 
 
-def get_count_controlled_tiles(expanded_state):
+def get_king_controlled_tiles(expanded_state):
     """
-    Return the number of tiles controlled by the king player minus the number
-    of tiles controlled by the dragon player. This value can be scaled to true
-    win and loss utility values.
+    Return the number of tiles controlled by the KING player.
 
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: the difference in the number of tiles controlled by the king
-        player and the dragon player
+    :return: the numer of tiles
     :rtype: int
     """    
     controlled_tiles = 0
@@ -135,27 +218,48 @@ def get_count_controlled_tiles(expanded_state):
                 neighbour_content = expanded_state[tile_number]
                 if neighbour_content == GUARD or neighbour_content == KING:
                     surrounding_p1_units += 1
-                elif neighbour_content == DRAGON:
-                    surrounding_p2_units += 1
             if surrounding_p1_units >= 2:
                 controlled_tiles += 1
-            elif surrounding_p2_units >= 3:
-                controlled_tiles -= 1
     return controlled_tiles
 
-
-def get_count_threatened_units(state, expanded_state):
+def get_dragon_controlled_tiles(expanded_state):
     """
-    Return the number of dragons threatened to be captured by the king player
-    minus the number guards threatened to be captured by the dragon player.
-    This value can be scaled to true win and loss utility values.
+    Return the number of tiles controlled by the DRAGON player.
+
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: the numer of tiles
+    :rtype: int
+    """    
+    controlled_tiles = 0
+    # Add one for every tile under KING control.
+    # Subtract one for every tile under DRAGON control.
+    # At the end, there will be an integer representing the relative advantage
+    # (or disadvantage, if negative) of the king player over the dragon player.
+    for tile in range(BOARD_NUM_RANKS * BOARD_NUM_FILES):
+        content = expanded_state[tile]
+        if content == EMPTY:
+            neighbours = get_orthogonal_tiles_around(tile)
+            surrounding_p1_units = 0
+            surrounding_p2_units = 0
+            for tile_number in neighbours:
+                neighbour_content = expanded_state[tile_number]
+                if neighbour_content == DRAGON:
+                    surrounding_p2_units += 1
+            if surrounding_p2_units >= 3:
+                controlled_tiles -= 1
+    return controlled_tiles 
+
+
+def get_dragon_threatened(state, expanded_state):
+    """
+    Return the number of DRAGONS threatened to be captured by the KING player
 
     :param state: the current node in the search
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: the difference in the number of units threatened by the king
-        player and the dragon player
+    :return: the number of DRAGONS potentially be captured by KING player
     :rtype: int
     """
     dragon_positions = get_live_dragon_enumeration(state)
@@ -170,6 +274,19 @@ def get_count_threatened_units(state, expanded_state):
         if threats >= 2:
             count_threatened_tiles += 1
 
+    return count_threatened_tiles
+
+def get_guard_threatened(state,expanded_state):
+    """
+    Return the number of DRAGONS threatened to be captured by the KING player
+
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: the number of DRAGONS potentially be captured by KING player
+    :rtype: int
+    """
     guard_positions = get_live_guards_enumeration(state)
     for _, guard in guard_positions:
         threats = 0
@@ -183,18 +300,18 @@ def get_count_threatened_units(state, expanded_state):
                 used_positions.append(neighbour)
             elif content == KING or content == GUARD:
                 used_positions.append(neighbour)
-            # If there are exactly 2 threats, we need to consider if a third
-            # dragon could move into the spot on the next turn.  If there are
-            # fewer than 2 dragons, there is no way this guard could be
-            # captured in the next turn, so move on to the next guard.
+        # If there are exactly 2 threats, we need to consider if a third
+        # dragon could move into the spot on the next turn.  If there are
+        # fewer than 2 dragons, there is no way this guard could be
+        # captured in the next turn, so move on to the next guard.
             if threats == 2:
                 unoccupied_neighbours = \
                     [i for i in guard_neighbours if i not in used_positions]
                 for unoccupied_tile in unoccupied_neighbours:
                     second_neighbours = \
-                        get_orthogonal_tiles_around(unoccupied_tile)
+                            get_orthogonal_tiles_around(unoccupied_tile)
                     second_neighbours.extend(
-                        get_diagonal_tiles_around(unoccupied_tile))
+                            get_diagonal_tiles_around(unoccupied_tile))
                     for n in second_neighbours:
                         content = expanded_state[n]
                         # Increase the threat if there is a dragon on one
@@ -202,12 +319,10 @@ def get_count_threatened_units(state, expanded_state):
                         # of interest is not on which has already been seen.
                         if n not in used_positions and content == DRAGON:
                             threats += 1
-        if threats >= 3:
-            count_threatened_tiles -= 1
-    return count_threatened_tiles
+        return threats
+ 
 
-
-def get_king_risk_level(king_tile_idx, expanded_state):
+def get_king_risk_level(expanded_state,king_tile_idx):
     """
     Returns an integer (possibly negative) indicating the risk level of the
     king. The smaller the value, the more risk for the king, and the better for
@@ -221,12 +336,17 @@ def get_king_risk_level(king_tile_idx, expanded_state):
     :return: an integer indicating the level of risk for the king
     :rtype: int
     """
+    """
     surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
     surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
     num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
     num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
     return num_guards - num_dragons
-
+    """
+    #Currently, king_risk_level is calculated by the number of possible 
+    #moves that KING can make. If KING is surrounded by DRAGONS,the number
+    #of moves for KING will be less. 
+    return count_king_moves(expanded_state,king_tile_idx)
 
 def _test():
     """
@@ -242,9 +362,11 @@ def _test():
     king_value = 0
     dragon_score = num_dragons * dragon_weight
     guard_score = round(num_guards * guard_weight) + king_value
-    controlled_tiles = get_count_controlled_tiles(expanded_state)
+    controlled_tiles = get_king_controlled_tiles(expanded_state) -\
+                        get_dragon_controlled_tiles(expanded_state)
     print("controlled_tiles:", controlled_tiles)
-    threatened_units = get_count_threatened_units(state, expanded_state)
+    threatened_units = get_dragon_threatened(state, expanded_state) -\
+                        get_guard_threatened(state, expanded_state)
     print("threatened_units:", threatened_units)
     king_pos = get_king_tile_index(state)
     king_prog = get_king_progress(king_pos)
@@ -252,7 +374,8 @@ def _test():
     print("total: ", guard_score - dragon_score + controlled_tiles + king_prog)
     print("value of simple_eval() on initial game state:",
           simple_eval(state, expanded_state))
-
+    print("value of split_weight_eval() on initial game state:",
+           split_weight_eval(state, expanded_state)) 
 
 if __name__ == "__main__":
     # If the code in _test() was directly here, it causes variable name
