@@ -2,14 +2,15 @@ import argparse
 from ui import *
 from minimax import *
 from time import sleep
-from evaluations import simple_eval
+from evaluations import simple_eval, split_weight_eval
 from utils import record_move_search_time
 from search import iterative_deepening_search
 from TranspositionTable import TranspositionTable
 
 defaults = {
     'eval': {
-        'simple': simple_eval
+        'simple': simple_eval,
+        'split': split_weight_eval
     },
     'eval_name': 'simple',
     'search': {
