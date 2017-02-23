@@ -970,7 +970,7 @@ def _capture_dragon_moves(expanded_state, moves):
     return moves
 
 
-def _all_valid_moves_for_king(expanded_state, king_tile_idx):
+def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
     """
     Returns a list of (<from-tile-index>, <to-tile-index>) pairs representing
     all the valid moves that the king can make. *** Assumes the given tile
@@ -1010,8 +1010,36 @@ def _all_valid_moves_for_king(expanded_state, king_tile_idx):
     return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
             moves.values() if is_valid]
 
-def count_king_moves(expanded_state,king_tile_idx):
-    return len(_all_valid_moves_for_king(expanded_state, king_tile_idx))
+
+def count_king_moves(state, expanded_state, king_tile_idx):
+    """
+    Returns the number of valid moves the king can make, including checks for
+    any possible forced moves.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param king_tile_idx: tile index (0-24) corresponding to a board position
+    :type king_tile_idx: byte
+    :return: the number of valid moves the king can make
+    """
+    king_is_captured, king_player_turn, forced_moves = \
+        _is_king_captured(state, expanded_state, king_tile_idx)
+    if king_is_captured:  # No forced moves. Doesn't matter the player's turn.
+        # Set the terminal state bits, for efficiency.
+        _mark_as_winning_state(state)
+        _set_winner(state, DRAGON_PLAYER)
+        return 0
+    if king_player_turn and forced_moves is not None:
+        # If the king is forced to make a move.
+        return len([from_tile_idx for from_tile_idx, _ in forced_moves
+                    if from_tile_idx == king_tile_idx])  # Return those.
+    # Otherwise, it's the dragon player's turn or there are no forced moves, so
+    # all other valid moves are possible.
+    return len(_all_valid_non_forced_moves_for_king(expanded_state,
+                                                    king_tile_idx))
+
 
 def _all_valid_moves_for_guard(expanded_state, tile_idx):
     """
@@ -1091,10 +1119,11 @@ def all_valid_moves(state, expanded_state):
         _set_winner(state, DRAGON_PLAYER)
         return all_moves
     if king_player_turn:
-        if forced_moves is not None:
-            return forced_moves
-        all_moves.extend(_all_valid_moves_for_king(expanded_state,
-                                                   king_tile_idx))
+        if forced_moves is not None:  # If the king is forced to make a move.
+            return forced_moves  # Return those.
+        # Otherwise, there are no forced moves, so get all other valid moves.
+        all_moves.extend(_all_valid_non_forced_moves_for_king(expanded_state,
+                                                              king_tile_idx))
         for _, idx in get_live_guards_enumeration(state):
             all_moves.extend(_all_valid_moves_for_guard(expanded_state, idx))
     else:  # It's DRAGON_PLAYER's turn, so no forced moves.
@@ -1134,10 +1163,15 @@ def is_terminal(state, expanded_state):
         _mark_as_winning_state(state)
         _set_winner(state, DRAGON_PLAYER)
         return True, DRAGON_WIN  # Then it's a win for the dragon player.
-    if king_player_turn and forced_moves is None:  # If it's the king player's
-        # turn, but he is not on the last rank, and also not captured, then
-        # it's a draw iff the king player has no possible valid moves.
-        if len(_all_valid_moves_for_king(expanded_state, king_tile_idx)) == 0:
+    if king_player_turn:  # If it's the king player's turn.
+        if forced_moves is not None:  # If he has forced moves, he can move, so
+            # since he is not on the last rank and is not captured, it is not
+            # a terminal state.
+            return False, 0
+        # Otherwise, the king is not on the last rank, and also not captured,
+        # so it's a draw iff the king player has no possible valid moves.
+        if len(_all_valid_non_forced_moves_for_king(expanded_state,
+                                                    king_tile_idx)) == 0:
             # King has no valid moves, but the guards still might.
             has_moves = False
             for _, idx in get_live_guards_enumeration(state):
