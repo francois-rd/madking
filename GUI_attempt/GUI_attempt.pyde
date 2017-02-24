@@ -3,6 +3,7 @@ import sys
 sys.path.append('../')
 from state import *
 from Pieces import *
+from threading import Thread
 board_width_pixels = 5
 board_width_pixels = 5
 s_move = 0
@@ -12,9 +13,9 @@ inc = 0
 piece = ""
 s_pos = 0
 e_pos = 0
-from threading import Thread
 thread = None
 move = None
+human_turn = True
 def setup():
     size(255,255)
     global piece, s_pos, e_pos
@@ -34,7 +35,7 @@ def draw():
     global state, expanded_state, inc, s_pos, e_pos, taking_input, piece, move
     draw_empty_board()
     draw_pieces(state, expanded_state, s_pos)
-    if draw_board_with_animation(state, expanded_state, piece, e_pos):            
+    if draw_board_with_animation(state, expanded_state, piece, e_pos):             
             move_piece(state, expanded_state, s_pos, e_pos)
             draw_pieces(state, expanded_state, s_pos)
             terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
@@ -116,27 +117,7 @@ def draw_pieces(state, expanded_state, no_draw):
         rect (x,y, 50, 50)
         fill(0)
         text('K', 24 + x,24 + y) 
+
     
 def number_to_coordinate(n):
     return (n//5)*50, ((4-n)%5)*50
-
-
-
-
-class MyThread(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-
-    def run(self):
-        run_ai()
-            
-            
-def run_ai():
-    pass
-    # play_ai_only(defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
-
-def stop():
-    print("I am running now")
-    # thread.daemon = True 
-
-
