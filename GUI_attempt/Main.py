@@ -7,10 +7,9 @@ from evaluations import simple_eval, split_weight_eval
 from search import iterative_deepening_search
 from TranspositionTable import TranspositionTable
 from state import string_position
-state = get_default_game_start()
-expanded_state = create_expanded_state_representation(state)
+state = None
+expanded_state = None
 move_number = 1
-moves = []
 defaults = {
     'eval': {
         'simple': simple_eval,
@@ -61,7 +60,6 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
                 self._results = None
 
             def run(self):
-                print("A")
                 from time import clock
                 start_t = clock()
                 results = iterative_deepening_search(state, expanded_state, evaluate, search, max_depth)
@@ -77,17 +75,15 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
             pass
         thread.join()
         (utility, move), time = thread.result()
-        print(move)
-        return move
+        return move, utility, time
 
 
 def play_ply(state, expanded_state, for_human, pause_for, move_number,
              evaluate, search, max_depth):
     
-    from_tile_idx, to_tile_idx = next_move(state, expanded_state, for_human,
+    move, utility, time = next_move(state, expanded_state, for_human,
                                         evaluate, search, max_depth)  
-    terminal, utility = is_terminal(state, expanded_state)
-    return terminal, string_position(from_tile_idx) + string_position(to_tile_idx)
+    return string_position(move[0]) + string_position(move[1]), utility, time
     
 
 
@@ -131,80 +127,4 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
         move_number += 1
 
 
-def play_single_player(evaluate, search, max_depth):
-    """
-    A game loop that has a human player playing interactively against the AI.
 
-    :param evaluate: a function taking a state and an expanded state and
-        returning a heuristic estimate of the state's utility for the current
-        player
-    :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param search: a search function taking a state, an expanded state, an
-        evaluation function, a remaining depth, and returning a
-        (<utility>, <move>) pair
-    :type search: (array of bytes,
-                   dict(byte, char),
-                   (array of bytes, dict(byte, char)) => numeric,
-                   int) => (numeric, (byte, byte))
-    :param max_depth: the maximum search depth; must be at least 1
-    :type max_depth: int
-    """
-    while True:
-        player_choice = input("King or Dragon Player? [k/d] ")
-        if player_choice in ["k", "d"]:
-            break
-        print("Invalid choice: '" + player_choice + "'")
-    print('')
-    if player_choice == "d":
-        print("You're the Dragon Player, so you play first!")
-    else:
-        print("You're the King Player, so you play second!")
-    play(player_choice == "d", player_choice != "d", evaluate, search,
-         max_depth)
-
-
-def play_two_player(evaluate, search, max_depth):
-    """
-    A game loop that has a two human players playing against each other.
-
-    :param evaluate: a function taking a state and an expanded state and
-        returning a heuristic estimate of the state's utility for the current
-        player
-    :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param search: a search function taking a state, an expanded state, an
-        evaluation function, a remaining depth, and returning a
-        (<utility>, <move>) pair
-    :type search: (array of bytes,
-                   dict(byte, char),
-                   (array of bytes, dict(byte, char)) => numeric,
-                   int) => (numeric, (byte, byte))
-    :param max_depth: the maximum search depth; must be at least 1
-    :type max_depth: int
-    """
-    play(True, True, evaluate, search, max_depth)
-
-
-def play_ai_only(evaluate, search, max_depth):
-    """
-    A game loop that has the AI playing against itself, and displaying the
-    game to onlookers.
-
-    :param evaluate: a function taking a state and an expanded state and
-        returning a heuristic estimate of the state's utility for the current
-        player
-    :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param search: a search function taking a state, an expanded state, an
-        evaluation function, a remaining depth, and returning a
-        (<utility>, <move>) pair
-    :type search: (array of bytes,
-                   dict(byte, char),
-                   (array of bytes, dict(byte, char)) => numeric,
-                   int) => (numeric, (byte, byte))
-    :param max_depth: the maximum search depth; must be at least 1
-    :type max_depth: int
-    """
-    init_table(defaults["table-size"],defaults['replace_name'] )
-    # play(False, False, evaluate, search, max_depth, 1)
-    
-
-    
