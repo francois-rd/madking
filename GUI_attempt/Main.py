@@ -61,7 +61,6 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
                 self._results = None
 
             def run(self):
-                print("A")
                 from time import clock
                 start_t = clock()
                 results = iterative_deepening_search(state, expanded_state, evaluate, search, max_depth)
@@ -77,7 +76,6 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
             pass
         thread.join()
         (utility, move), time = thread.result()
-        print(move)
         return move
 
 

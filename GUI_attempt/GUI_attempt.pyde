@@ -10,38 +10,58 @@ s_move = 0
 e_move = 0
 taking_input = False
 inc = 0
-piece = ""
+piece = None
 s_pos = 0
 e_pos = 0
 thread = None
 move = None
+from_tile = 0
 human_turn = True
+from_turn = False
+to_turn = False
+
+
+
 def setup():
-    size(255,255)
+    size(250,250)
     global piece, s_pos, e_pos
-    s_pos = 0
-    e_pos = 0
-    piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
-    # thread = MyThread()
-    # thread.run()
+    draw_empty_board()
+    draw_pieces(state, expanded_state, -1)
+    
     init_table(defaults["table-size"],defaults['replace_name'] )
-    terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
-    s_pos = tile_index(move[0:2])
-    e_pos = tile_index(move[2:4])    
-    piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1] )
+    if not human_turn:
+        piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
+        terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
+        s_pos = tile_index(move[0:2])
+        e_pos = tile_index(move[2:4])    
+        piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
+
 
     
 def draw():
-    global state, expanded_state, inc, s_pos, e_pos, taking_input, piece, move
+    global state, expanded_state, inc, s_pos, e_pos, taking_input, piece, move, human_turn
     draw_empty_board()
     draw_pieces(state, expanded_state, s_pos)
-    if draw_board_with_animation(state, expanded_state, piece, e_pos):             
-            move_piece(state, expanded_state, s_pos, e_pos)
-            draw_pieces(state, expanded_state, s_pos)
-            terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
-            s_pos = tile_index(move[0:2])
-            e_pos = tile_index(move[2:4])    
-            piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1] )
+    if not human_turn:
+        if piece == None:
+                terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
+                s_pos = tile_index(move[0:2])
+                e_pos = tile_index(move[2:4])    
+                piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
+        if draw_board_with_animation(state, expanded_state, piece, e_pos):
+                move_piece(state, expanded_state, s_pos, e_pos)
+                draw_pieces(state, expanded_state, s_pos)
+                human_turn = True
+                piece = None
+                
+                # terminal, move = play_ply(state, expanded_state, False, 1, 1, defaults['eval']['simple'], defaults['search']['alpha-beta'], defaults['depth'])
+                # s_pos = tile_index(move[0:2])
+                # e_pos = tile_index(move[2:4])    
+                # piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
+                # s_pos = -1
+                
+    if from_turn:
+        draw_piece(expanded_state[from_tile], mouseX - 25, mouseY - 25)
 
         
         
@@ -118,6 +138,76 @@ def draw_pieces(state, expanded_state, no_draw):
         fill(0)
         text('K', 24 + x,24 + y) 
 
+
+
     
+
+    
+        
+    
+     
+def mousePressed():
+    global expanded_state, s_pos, from_tile, from_turn, to_turn, to_tile,human_turn 
+    if human_turn:
+        if not from_turn:
+            x = mouseX
+            y = mouseY
+            from_tile = get_rect_from_coordinates(x ,y)
+            if  expanded_state[from_tile] != '.':
+                from_turn = True
+                s_pos = from_tile
+        else:
+            if not to_turn:
+                x = mouseX
+                y = mouseY
+                to_tile = get_rect_from_coordinates(x ,y)
+                if (from_tile, to_tile) in all_valid_moves(state, expanded_state):
+                    from_turn = False
+                    true_turn = False
+                    human_turn = False
+                    move_piece(state, expanded_state, from_tile, to_tile)
+                else:
+                    from_turn = False
+                    true_turn = False
+                    s_pos = -1
+
+                    
+                    
+                    
+                
+            
+            
+def draw_piece(type, tile_index):
+    if type == 'G':
+        fill(guard_color)
+    if type == 'D':
+        fill(dragon_color)
+    if type == 'K':
+        fill(king_color)
+    x, y = number_to_coordinate(tile_index)
+    rect (x, y , 50, 50)
+    fill(0)
+    text(type, 24 + x,24 + y)
+    
+      
+def draw_piece(type, x, y):
+    if type == 'G':
+        fill(guard_color)
+    if type == 'D':
+        fill(dragon_color)
+    if type == 'K':
+        fill(king_color)
+    rect (x, y , 50, 50)
+    fill(0)
+    text(type, 24 + x,24 + y) 
+    
+    
+    
+    
+def get_rect_from_coordinates(x, y):
+    xRect = x/50
+    yRect = y/50
+    return xRect*5 + (4-yRect)
+
 def number_to_coordinate(n):
     return (n//5)*50, ((4-n)%5)*50

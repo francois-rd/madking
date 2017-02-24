@@ -13,7 +13,7 @@ class Piece:
     b = False
     mouse = PVector(x,y)
     dir = PVector.sub(mouse,self.location)
-    if dir.mag() > 1:
+    if dir.mag() > 3:
         dir.normalize()
         dir.mult(0.5) 
         acceleration = dir
