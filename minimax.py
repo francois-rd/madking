@@ -111,10 +111,21 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
         utility = evaluate(state, expanded_state)
         best_move = None
     else:
-        vs = [(minimax(new_state, new_expanded_state, evaluate,
-                       remaining_depth - 1)[0], new_move) for
-              new_state, new_expanded_state, new_move in
-              successors(state, expanded_state)]
+        vs = []
+        best_move = None
+        if value is not None:
+            best_move = value[2]
+            best_stored_state = copy.deepcopy(state)
+            best_stored_expanded_state = create_expanded_state_representation(best_stored_state)
+            move_piece(best_stored_state, best_stored_expanded_state, best_move[0], best_move[1])
+            vs.append((minimax(best_stored_state, best_stored_expanded_state,
+                               evaluate, remaining_depth - 1)[0], best_move))
+        vs.extend([(minimax(new_state, new_expanded_state, evaluate,
+                            remaining_depth - 1)[0], new_move) if (new_move != best_move) else (-1,) for
+                   new_state, new_expanded_state, new_move in
+                   successors(state, expanded_state)])
+        if (-1,) in vs:
+            vs.remove((-1,))
         if player_turn(state) == KING_PLAYER:
             utility, best_move = max(vs, key=lambda i: i[0])
         else:
@@ -183,16 +194,25 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
         utility = evaluate(state, expanded_state)
         best_move = None
     else:
-        # TODO: move-ordering goes here?
-        # TODO: if the table entry was not None, try the stored move first.
-        #       If we get a cutoff, then we don't need to generate successors!
-        # TODO: might implement this in successor function (i.e. provide
-        #       successor) with the stored move so it can reorder internally.
-        #       Otherwise, we need to check in the following for-loop that the
-        #       returned successor is not equal to the stored one.
+        # Examine the stored best value and order it first if it exists
+        best_stored = None
+        if value is not None:
+            flags = value[FLAGS_INDEX]
+            if flags == ALPHA_CUTOFF or flags == BETA_CUTOFF:
+                return value[SCORE_INDEX], value[MOVE_INDEX]
+            best_move = value[2]
+            best_stored_state = copy.deepcopy(state)
+            best_stored_expanded_state = create_expanded_state_representation(best_stored_state)
+            move_piece(best_stored_state, best_stored_expanded_state, best_move[0], best_move[1])
+            best_stored = (best_stored_state, best_stored_expanded_state, best_move)
+
+        _successors = successors(state, expanded_state)
+        if best_stored in _successors:
+            _successors.remove(best_stored)
+            _successors.insert(0, best_stored)
+        _successors = _successors.__iter__()
 
         # Initialize utility, exact, and best_move with first successor.
-        _successors = successors(state, expanded_state).__iter__()
         first_state, first_expanded_state, best_move = next(_successors)
         utility = alpha_beta_min(first_state, first_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
@@ -280,16 +300,24 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
         utility = evaluate(state, expanded_state)
         best_move = None
     else:
-        # TODO: move-ordering goes here?
-        # TODO: if the table entry was not None, try the stored move first.
-        #       If we get a cutoff, then we don't need to generate successors!
-        # TODO: might implement this in successor function (i.e. provide
-        #       successor) with the stored move so it can reorder internally.
-        #       Otherwise, we need to check in the following for-loop that the
-        #       returned successor is not equal to the stored one.
+        # Examine the stored best value and order it first if it exists
+        best_stored = None
+        if value is not None:
+            flags = value[FLAGS_INDEX]
+            if flags == ALPHA_CUTOFF or flags == BETA_CUTOFF:
+                return value[SCORE_INDEX], value[MOVE_INDEX]
+            best_move = value[2]
+            best_stored_state = copy.deepcopy(state)
+            best_stored_expanded_state = create_expanded_state_representation(best_stored_state)
+            move_piece(best_stored_state, best_stored_expanded_state, best_move[0], best_move[1])
+            best_stored = (best_stored_state, best_stored_expanded_state, best_move)
 
+        _successors = successors(state, expanded_state)
+        if best_stored in _successors:
+            _successors.remove(best_stored)
+            _successors.insert(0, best_stored)
+        _successors = _successors.__iter__()
         # Initialize utility, exact, and best_move with first successor.
-        _successors = successors(state, expanded_state).__iter__()
         first_state, first_expanded_state, best_move = next(_successors)
         utility = alpha_beta_max(first_state, first_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
