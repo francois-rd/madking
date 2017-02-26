@@ -200,6 +200,8 @@ def alpha_beta_max(state, expanded_state, evaluate, remaining_depth,
                 _table[hash_string] = (remaining_depth, utility, best_move,
                                        BETA_CUTOFF)
                 return utility, best_move
+            else:  # Might still help narrow the search window.
+                alpha = max(alpha, utility)
 
         # Initialize utility and best_move either with first successor if there
         # was no stored move.
@@ -312,6 +314,8 @@ def alpha_beta_min(state, expanded_state, evaluate, remaining_depth,
                 _table[hash_string] = (remaining_depth, utility, best_move,
                                        ALPHA_CUTOFF)
                 return utility, best_move
+            else:  # Might still help narrow the search window.
+                beta = min(beta, utility)
 
         # Initialize utility and best_move either with first successor if there
         # was no stored move.
