@@ -10,7 +10,7 @@ board_width_pixels = 5
 taking_input = False
 
 
-player = { KING_PLAYER: "A", DRAGON_PLAYER :"A" }
+player = { KING_PLAYER: "A", DRAGON_PLAYER :"H" }
 evaluate = defaults['eval']["simple"]
 algorithm = defaults['search']["alpha-beta"]
 max_depth = defaults['depth']
@@ -37,8 +37,8 @@ e_temp_pos = 0
 temp_state = None
 temp_expanded_state = None
 switch_mode = ''
-current_utility = 0.0
-current_time = 0.0
+current_utility = ""
+current_time = ""
 temp_current_time = 0.0
 temp_current_utility = 0.0
 
@@ -104,19 +104,8 @@ def draw():
                     piece = Piece(expanded_state[s_pos], number_to_coordinate(s_pos)[0],number_to_coordinate(s_pos)[1])
             if draw_board_with_animation(state, expanded_state, piece, e_pos):
                     move_piece(state, expanded_state, s_pos, e_pos)
-                    terminal, evaluation = is_terminal(state, expanded_state)
-                    draw_pieces(state, expanded_state, s_pos)                    
-                    if terminal:
-                        pushStyle()
-                        textSize(30)
-                        if evaluation == DRAGON_WIN:
-                            text("DRAGON WON", 80, 275)
-                        elif evaluation == KING_WIN:
-                            text("KING WON", 80, 275)
-                        else:
-                            text("DRAW", 80, 275)
-                        noLoop()
-                        popStyle()
+                    draw_pieces(state, expanded_state, s_pos)
+                    check_win()                    
                     human_turn = True
                     piece = None
         if from_turn:
@@ -186,7 +175,8 @@ def draw_pieces(state, expanded_state, no_draw):
      
 def mousePressed():
     if game_started and not paused:
-        global expanded_state, s_pos, from_tile, from_turn, to_turn, to_tile,human_turn 
+        global expanded_state, s_pos, from_tile, from_turn, to_turn, to_tile,human_turn
+        global current_utility, current_time 
         if human_turn and player[player_turn(state)]=="H":
             if not from_turn:
                 x = mouseX
@@ -205,8 +195,11 @@ def mousePressed():
                         true_turn = False
                         human_turn = True
                         move = string_position(from_tile)+ string_position(to_tile)
-                        moves.append((move, utility, time))
+                        current_utility = "" 
+                        current_time = ""
+                        moves.append((move, current_utility, current_time))
                         move_piece(state, expanded_state, from_tile, to_tile)
+                        check_win()
                     else:
                         from_turn = False
                         true_turn = False
@@ -269,6 +262,21 @@ def keyPressed():
             e_temp_pos = tile_index(move[2:4])   
 
         temp_piece = Piece(temp_expanded_state[s_temp_pos], number_to_coordinate(s_temp_pos)[0],number_to_coordinate(s_temp_pos)[1])
+
+def check_win():
+    terminal, evaluation = is_terminal(state, expanded_state)
+    if terminal:
+        pushStyle()
+        textSize(30)
+        if evaluation == DRAGON_WIN:
+            text("DRAGON WON", 80, 275)
+        elif evaluation == KING_WIN:
+            text("KING WON", 80, 275)
+        else:
+            text("DRAW", 80, 275)
+        noLoop()
+    
+
 
 def draw_piece(type, x, y):
     if type == 'G':
