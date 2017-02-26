@@ -1,6 +1,7 @@
 from array import array
 import sys
 import copy
+import evaluations
 
 """
 Index of each board tile, with the default position of each piece.
@@ -985,7 +986,11 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
     :return: a list of (<from-tile-index>, <to-tile-index>) pairs representing
         all the valid moves the king can make
     :rtype: list((byte, byte))
-    """
+      """
+    _, _, below_idx, at_below = moves['b']
+    if at_below == GUARD:
+        # King can't both move down and jump over downwards, so just replace.
+        moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
     moves = _all_orthogonal_moves(expanded_state, king_tile_idx)
     _capture_dragon_moves(expanded_state, moves)
     # Moves doesn't contain possible jumps over guards. So, for each move, if
@@ -1003,10 +1008,6 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
     if at_above == GUARD:
         # King can't both move up and jump over upwards, so just replace.
         moves['a'] = _check_above(expanded_state, above_idx, [EMPTY])
-    _, _, below_idx, at_below = moves['b']
-    if at_below == GUARD:
-        # King can't both move down and jump over downwards, so just replace.
-        moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
     return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
             moves.values() if is_valid]
 
@@ -1091,6 +1092,71 @@ def _all_valid_moves_for_dragon(expanded_state, tile_idx):
     return [(tile_idx, to_tile_idx) for _, is_empty, to_tile_idx, _ in
             moves.values() if is_empty]
 
+def ordered_dragon_moves(state,expanded_state,tile_idx):
+    """
+    Returns the list of ordering dragon moves: capturing, threatening.
+    :param state: the current game state - current node 
+    type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param tile_idx: the tile index of a dragon
+    :type tile_idx: byte
+    :return: the list of ordering dragon moves: capturing, threatening.
+    :rtype: list ((byte,byte))
+    """
+    moves = _all_valid_moves_for_dragon(expanded_state,tile_idx)
+    ordered_moves = []
+    king_pos = get_king_tile_index(state)
+    for m in moves:
+        temp_state = state
+        temp_expanded_state = expanded_state
+        move_piece(temp_state,temp_expanded_state,\
+                    m[0],m[1])
+        if _is_king_captured(temp_state,temp_expanded_state,\
+                                                king_pos):
+            ordered_moves.append(m)
+    potential_moves = [m for m in moves if m not in ordered_moves]
+    for m in potential_moves:
+        temp_state = state
+        temp_expanded_state = expanded_state
+        move_piece(temp_state,temp_expanded_state,\
+                    m[0],m[1])
+        for g in alive_guards:
+            if _is_guard_surrounded(temp_expaded_state,g[1]):
+                ordered_moves.append(m)
+    potential_moves = [m for m in moves if m not in ordered_moves]
+    for m in potential_moves:
+        temp_state = state
+        temp_expanded_state = expanded_state
+        move_piece(temp_state, temp_expanded_state,\
+                        m[0],m[1])
+        #Because the dragon moves from m[0] to m[1].The tile_idx of
+        #this dragon is updated to m[1]. Generate next_moves from m[1].
+        #If any move in next_moves allows DRAGON to capture KING or GUARD
+        #then m which is moving DRAGON to m[1] is a threatening move.
+        next_moves = _all_valid_moves_for_dragon(temp_expanded_state,\
+                                                            m[1])
+        for next_m in next_moves:
+            if _is_king_captured(temp_state,temp_expanded_state,\
+                                                king_pos):
+                ordered_moves.append(m)
+    potential_moves = [m for m in moves if m not in ordered_moves]
+    for m in potential_moves:
+        temp_state = state
+        temp_expanded_state = expanded_state
+        move_piece(temp_state, temp_expanded_state,\
+                        m[0], m[1])
+        next_moves = _all_valid_moves_for_dragon(temp_expanded_state,\
+                                                            m[1])
+        for next_m in next_moves:
+            for g in alive_guards:
+                if _is_guard_captured(temp_state,temp_expanded_state,\
+                                                                g[1]):
+                    ordered_moves.append(m)
+    potential_moves = [m for m in moves if m not in ordered_moves]
+    for m in potential_moves:
+        ordered_moves.append(m)
+    return ordered_moves
 
 def all_valid_moves(state, expanded_state):
     """
