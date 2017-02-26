@@ -585,13 +585,9 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
             forced_moves.extend(third_dragon_forced_moves)
             # Now, check if it's a guard, and if the guard can move.
             if at_fourth_side == GUARD:
-                # Since the guard can't capture a dragon (by the above), then
-                # only the "basic" orthogonal moves actually matter.
-                moves = _all_orthogonal_moves(expanded_state,
-                                              unknown_content_idx)
-                forced_moves.extend([(unknown_content_idx, to_tile_idx) for
-                                     _, is_valid, to_tile_idx, _ in
-                                     moves.values() if is_valid])
+                forced_moves.extend(
+                    _all_valid_moves_for_guard(expanded_state,
+                                               unknown_content_idx))
             king_is_captured = len(forced_moves) == 0
             if king_is_captured:
                 forced_moves = None
