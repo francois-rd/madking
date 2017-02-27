@@ -922,10 +922,10 @@ def _all_orthogonal_moves(expanded_state, tile_idx):
     """
     from collections import OrderedDict
     moves = OrderedDict()
+    moves['b'] = _check_below(expanded_state, tile_idx, [EMPTY])
     moves['l'] = _check_left(expanded_state, tile_idx, [EMPTY])
     moves['r'] = _check_right(expanded_state, tile_idx, [EMPTY])
     moves['a'] = _check_above(expanded_state, tile_idx, [EMPTY])
-    moves['b'] = _check_below(expanded_state, tile_idx, [EMPTY])
     return moves
 
 
@@ -982,11 +982,7 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
     :return: a list of (<from-tile-index>, <to-tile-index>) pairs representing
         all the valid moves the king can make
     :rtype: list((byte, byte))
-      """
-    _, _, below_idx, at_below = moves['b']
-    if at_below == GUARD:
-        # King can't both move down and jump over downwards, so just replace.
-        moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
+    """
     moves = _all_orthogonal_moves(expanded_state, king_tile_idx)
     _capture_dragon_moves(expanded_state, moves)
     # Moves doesn't contain possible jumps over guards. So, for each move, if
@@ -1004,6 +1000,10 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
     if at_above == GUARD:
         # King can't both move up and jump over upwards, so just replace.
         moves['a'] = _check_above(expanded_state, above_idx, [EMPTY])
+    _, _, below_idx, at_below = moves['b']
+    if at_below == GUARD:
+        # King can't both move down and jump over downwards, so just replace.
+        moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
     return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
             moves.values() if is_valid]
 
