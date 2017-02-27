@@ -821,6 +821,137 @@ def _is_dragon_surrounded(expanded_state, dragon_idx):
            (guard_or_king_above and guard_or_king_below)
 
 
+def get_orthogonal_tiles_around(tile_idx):
+    """
+    Returns a list of the tile indices of the four neighbouring tiles
+    orthogonal to the tile at the given index, if they are on the board.
+
+    :param tile_idx: the tile index (0-24) corresponding to a board position
+    :type tile_idx: byte
+    :return: a list of the tile indices of the four orthogonal tiles
+    :rtype: list(byte)
+    """
+    tiles = []
+    left = tile_idx - BOARD_NUM_RANKS
+    right = tile_idx + BOARD_NUM_RANKS
+    above = tile_idx + 1
+    below = tile_idx - 1
+    if left >= 0:
+        tiles.append(left)
+    if right < BOARD_NUM_RANKS * BOARD_NUM_FILES:
+        tiles.append(right)
+    if above % BOARD_NUM_RANKS != 0:
+        tiles.append(above)
+    if tile_idx % BOARD_NUM_RANKS != 0:  # tile_idx, not below!
+        tiles.append(below)
+    return tiles
+
+
+def get_diagonal_tiles_around(tile_idx):
+    """
+    Returns a list of the tile indices of the four neighbouring tiles
+    diagonal to the tile at the given index, if they are on the board.
+
+    :param tile_idx: the tile index (0-24) corresponding to a board position
+    :type tile_idx: byte
+    :return: a list of the tile indices of the four diagonal tiles
+    :rtype: list(byte)
+    """
+    tiles = []
+    left = tile_idx - BOARD_NUM_RANKS
+    if left >= 0:  # If left is on the board.
+        upper_left = left + 1
+        lower_left = left - 1
+        if upper_left % BOARD_NUM_RANKS != 0:
+            tiles.append(upper_left)
+        if left % BOARD_NUM_RANKS != 0:  # left, not lower_left!
+            tiles.append(lower_left)
+    right = tile_idx + BOARD_NUM_RANKS
+    if right < BOARD_NUM_RANKS * BOARD_NUM_FILES:  # If right is on the board.
+        upper_right = right + 1
+        lower_right = right - 1
+        if upper_right % BOARD_NUM_RANKS != 0:
+            tiles.append(upper_right)
+        if right % BOARD_NUM_RANKS != 0:  # right, not lower_right!
+            tiles.append(lower_right)
+    return tiles
+
+
+def is_dragon_threatened(state, expanded_state):
+    """
+    Returns the number of DRAGONS threatened to be captured by the king player.
+
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: the number of DRAGONS threatened to be captured by the king player
+    :rtype: int
+    """
+    count_threatened_tiles = 0
+    dragon_positions = get_live_dragon_enumeration(state)
+    for _, dragon in dragon_positions:
+        threats = 0
+        neighbour_tiles = get_orthogonal_tiles_around(dragon-DRAGON_BASE)
+        for neighbour in neighbour_tiles:
+            content = expanded_state[neighbour]
+            if content == GUARD or content == KING:
+                threats += 1
+        if threats >= 2:
+            count_threatened_tiles += 1
+    return (count_threatened_tiles > 0)
+
+
+def is_guard_threatened(state, expanded_state):
+    """
+    Returns the number of GUARDS threatened to be captured by the dragon player.
+
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: the number of GUARDS threatened to be captured by the dragon player
+    :rtype: int
+    """
+    #TODO Double-check this function for correctness.
+    count_threatened_tiles = 0
+    guard_positions = get_live_guards_enumeration(state)
+    for _, guard in guard_positions:
+        threats = 0
+        used_positions = []
+        guard_neighbours = get_orthogonal_tiles_around(guard)
+        # Examine all direct neighbour of this guard.
+        for neighbour in guard_neighbours:
+            content = expanded_state[neighbour]
+            if content == DRAGON:
+                threats += 1
+                used_positions.append(neighbour)
+            elif content == KING or content == GUARD:
+                used_positions.append(neighbour)
+            # If there are exactly 2 threats, we need to consider if a third
+            # dragon could move into the spot on the next turn.  If there are
+            # fewer than 2 dragons, there is no way this guard could be
+            # captured in the next turn, so move on to the next guard.
+            if threats == 2:
+                unoccupied_neighbours = \
+                    [i for i in guard_neighbours if i not in used_positions]
+                for unoccupied_tile in unoccupied_neighbours:
+                    second_neighbours = \
+                            get_orthogonal_tiles_around(unoccupied_tile)
+                    second_neighbours.extend(
+                            get_diagonal_tiles_around(unoccupied_tile))
+                    for n in second_neighbours:
+                        content = expanded_state[n]
+                        # Increase the threat if there is a dragon on one
+                        # of the neighbouring tiles, but only if the tile
+                        # of interest is not on which has already been seen.
+                        if n not in used_positions and content == DRAGON:
+                            threats += 1
+        if threats >= 3:
+            count_threatened_tiles += 1
+    return (count_threatened_tiles > 0)
+
+
 def move_piece(state, expanded_state, from_tile_idx, to_tile_idx):
     """
     Modifies the given state and expanded state to reflect a move of a piece on
@@ -973,7 +1104,7 @@ def _capture_dragon_moves(expanded_state, moves):
     return moves, caps
 
 
-def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
+def _all_valid_non_forced_moves_for_king(state, expanded_state, king_tile_idx):
     """
     Returns a list of (<from-tile-index>, <to-tile-index>) pairs representing
     all the valid moves that the king can make. *** Assumes the given tile
@@ -995,7 +1126,8 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
 
     for key, value in caps:
         if caps[key]:
-            moves['capture'].append(king_tile_idx, orth_moves[key][2])
+            moves['capture'].append((king_tile_idx, orth_moves[key][2]))
+
 
     # Moves doesn't contain possible jumps over guards. So, for each move, if
     # the move would land on a guard, replace it with a move that may jump over
@@ -1021,7 +1153,16 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
         moves['progress'].append((king_tile_idx, orth_moves['b'][2]))
 
     # Check for threatenedness here and append those to 'threat'
-
+    for key, value, in  orth_moves:
+        temp_state = copy.deepcopy(state)
+        temp_expanded_state = copy.deepcopy(expanded_state)
+        move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
+        guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+        dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+        if guard_threat or dragon_threat:
+            moves['threat'].append((king_tile_idx, value[2]))
+        else:
+            moves['other'].append((king_tile_idx, value[2]))
 
     # Append all others to 'other'
     return moves
@@ -1059,7 +1200,7 @@ def count_king_moves(state, expanded_state, king_tile_idx):
                                                     king_tile_idx))
 
 
-def _all_valid_moves_for_guard(expanded_state, tile_idx):
+def _all_valid_moves_for_guard(state, expanded_state, tile_idx):
     """
     Returns a list of (<from-tile-index>, <to-tile-index>) pairs representing
     all the valid moves that the guard at the given tile index can make.
@@ -1082,7 +1223,17 @@ def _all_valid_moves_for_guard(expanded_state, tile_idx):
 
     for key, value in caps:
         if caps[key]:
-            moves['capture'].append(tile_idx, orth_moves[key][2])
+            moves['capture'].append((tile_idx, orth_moves[key][2]))
+        else:
+            temp_state = copy.deepcopy(state)
+            temp_expanded_state = copy.deepcopy(expanded_state)
+            move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
+            guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+            dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+            if guard_threat or dragon_threat:
+                moves['threat'].append((tile_idx, orth_moves[key][2]))
+            else:
+                moves['other'].append((tile_idx, orth_moves[key][2]))
 
     # Check for threatenedness here and append those to 'threat'
 
@@ -1168,6 +1319,8 @@ def ordered_dragon_moves(state,expanded_state,tile_idx):
         #then m which is moving DRAGON to m[1] is a threatening move.
         next_moves = _all_valid_moves_for_dragon(temp_expanded_state,\
                                                             m[1])
+        # TODO I feel like there's a bug here. We're iterating over moves,
+        # but not actually using the move to determine if the king if captured.
         for next_m in next_moves:
             if _is_king_captured(temp_state,temp_expanded_state,\
                                                 king_pos):
@@ -1223,10 +1376,30 @@ def all_valid_moves(state, expanded_state):
         if forced_moves is not None:  # If the king is forced to make a move.
             return forced_moves  # Return those.
         # Otherwise, there are no forced moves, so get all other valid moves.
-        all_moves.extend(_all_valid_non_forced_moves_for_king(expanded_state,
-                                                              king_tile_idx))
+
+        # We get dicts back now with capture, threat, progress, other
+        king_moves = _all_valid_non_forced_moves_for_king(state, expanded_state,
+                                                              king_tile_idx)
+        guard_moves = []
         for _, idx in get_live_guards_enumeration(state):
-            all_moves.extend(_all_valid_moves_for_guard(expanded_state, idx))
+            guard_moves.append(_all_valid_moves_for_guard(expanded_state, idx))
+
+        # order moves as progress, capture, threat, other
+        all_moves.extend(king_moves['progress'])
+        all_moves.extend(king_moves['capture'])
+        for guard in guard_moves:
+            all_moves.extend(guard['capture'])
+        all_moves.extend(king_moves['threat'])
+        for guard in guard_moves:
+            all_moves.extend(guard['threat'])
+        all_moves.extend(king_moves['other'])
+        for guard in guard_moves:
+            all_moves.extend(guard['other'])
+
+        # all_moves.extend(_all_valid_non_forced_moves_for_king(expanded_state,
+        #                                                       king_tile_idx))
+        # for _, idx in get_live_guards_enumeration(state):
+        #     all_moves.extend(_all_valid_moves_for_guard(expanded_state, idx))
     else:  # It's DRAGON_PLAYER's turn, so no forced moves.
         for _, idx in get_live_dragon_enumeration(state):
             all_moves.extend(_all_valid_moves_for_dragon(expanded_state,
