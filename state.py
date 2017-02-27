@@ -955,19 +955,25 @@ def _capture_dragon_moves(expanded_state, moves):
         done by replacing the previous value for the corresponding key
     :rtype: dict(char, (bool, bool, byte, char))
     """
+    caps = {'l': False, 'r': False, 'a': False, 'b': False}
+
     _, _, left_idx, at_left = moves['l']
     if at_left == DRAGON and _is_dragon_surrounded(expanded_state, left_idx):
         moves['l'] = (True, True, left_idx, at_left)
+        caps['l'] = True
     _, _, right_idx, at_right = moves['r']
     if at_right == DRAGON and _is_dragon_surrounded(expanded_state, right_idx):
         moves['r'] = (True, True, right_idx, at_right)
+        caps['r'] = True
     _, _, above_idx, at_above = moves['a']
     if at_above == DRAGON and _is_dragon_surrounded(expanded_state, above_idx):
         moves['a'] = (True, True, above_idx, at_above)
+        caps['a'] = True
     _, _, below_idx, at_below = moves['b']
     if at_below == DRAGON and _is_dragon_surrounded(expanded_state, below_idx):
         moves['b'] = (True, True, below_idx, at_below)
-    return moves
+        caps['b'] = True
+    return moves, caps
 
 
 def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
@@ -986,29 +992,44 @@ def _all_valid_non_forced_moves_for_king(expanded_state, king_tile_idx):
         all the valid moves the king can make
     :rtype: list((byte, byte))
     """
-    moves = _all_orthogonal_moves(expanded_state, king_tile_idx)
-    _capture_dragon_moves(expanded_state, moves)
+    moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
+    orth_moves= _all_orthogonal_moves(expanded_state, king_tile_idx)
+    orth_moves, caps = _capture_dragon_moves(expanded_state, king_tile_idx)
+
+    for key, value in caps:
+        if caps[key]:
+            moves['capture'].append(king_tile_idx, orth_moves[key][2])
+
     # Moves doesn't contain possible jumps over guards. So, for each move, if
     # the move would land on a guard, replace it with a move that may jump over
     # the guard, if applicable.
-    _, _, left_idx, at_left = moves['l']
+    _, _, left_idx, at_left = orth_moves['l']
     if at_left == GUARD:
         # King can't both move left and jump over on left, so just replace.
-        moves['l'] = _check_left(expanded_state, left_idx, [EMPTY])
-    _, _, right_idx, at_right = moves['r']
+        orth_moves['l'] = _check_left(expanded_state, left_idx, [EMPTY])
+    _, _, right_idx, at_right = orth_moves['r']
     if at_right == GUARD:
         # King can't both move right and jump over on right, so just replace.
-        moves['r'] = _check_right(expanded_state, right_idx, [EMPTY])
-    _, _, above_idx, at_above = moves['a']
+        orth_moves['r'] = _check_right(expanded_state, right_idx, [EMPTY])
+    _, _, above_idx, at_above = orth_moves['a']
     if at_above == GUARD:
         # King can't both move up and jump over upwards, so just replace.
-        moves['a'] = _check_above(expanded_state, above_idx, [EMPTY])
-    _, _, below_idx, at_below = moves['b']
+        orth_moves['a'] = _check_above(expanded_state, above_idx, [EMPTY])
+    _, _, below_idx, at_below = orth_moves['b']
     if at_below == GUARD:
         # King can't both move down and jump over downwards, so just replace.
-        moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
-    return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
-            moves.values() if is_valid]
+        orth_moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
+
+    if orth_moves['b'][1]:
+        moves['progress'].append((king_tile_idx, orth_moves['b'][2]))
+
+    # Check for threatenedness here and append those to 'threat'
+
+
+    # Append all others to 'other'
+    return moves
+    # return [(king_tile_idx, tile_idx) for _, is_valid, tile_idx, _ in
+    #         moves.values() if is_valid]
 
 
 def count_king_moves(state, expanded_state, king_tile_idx):
@@ -1057,9 +1078,23 @@ def _all_valid_moves_for_guard(expanded_state, tile_idx):
         all the valid moves the guard at the given tile index can make
     :rtype: list((byte, byte))
     """
-    moves = _all_orthogonal_moves(expanded_state, tile_idx)
-    return [(tile_idx, to_tile_idx) for _, is_valid, to_tile_idx, _ in
-            _capture_dragon_moves(expanded_state, moves).values() if is_valid]
+    moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
+    orth_moves = _all_orthogonal_moves(expanded_state, tile_idx)
+
+    orth_moves, caps = _capture_dragon_moves(expanded_state, tile_idx)
+
+    for key, value in caps:
+        if caps[key]:
+            moves['capture'].append(tile_idx, orth_moves[key][2])
+
+    # Check for threatenedness here and append those to 'threat'
+
+
+    # Append all others to 'other'
+
+    return moves
+    # return [(tile_idx, to_tile_idx) for _, is_valid, to_tile_idx, _ in
+    #         _capture_dragon_moves(expanded_state, moves).values() if is_valid]
 
 
 def _all_valid_moves_for_dragon(expanded_state, tile_idx):
@@ -1108,6 +1143,10 @@ def all_valid_moves(state, expanded_state):
     :rtype: list((byte, byte))
     """
     all_moves = []
+    king_progress = []
+    captures = []
+    threats = []
+    other_moves = []
     if is_winning_state(state):  # Check if result has already been computed.
         return all_moves
     king_tile_idx = get_king_tile_index(state)
