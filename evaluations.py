@@ -125,7 +125,7 @@ def get_dragon_features(state, expanded_state):
     w_dragon_threatened = -9  # Neg., because this is bad for the dragon player.
     w_king_risk_level = 10
     w_guard_threatened = 4
-    w_king_progress = -10 # Neg., because this is bad for the dragon player.
+    w_king_progress = -10  # Neg., because this is bad for the dragon player.
     king_pos = get_king_tile_index(state)
     return (w_dragon_alive * len(get_live_dragon_enumeration(state))
             + (w_dragon_controlled_tiles *
@@ -133,10 +133,11 @@ def get_dragon_features(state, expanded_state):
             + (w_dragon_threatened *
                 get_dragon_threatened(state, expanded_state))
             + (w_king_risk_level *
-                get_king_risk_level(state, expanded_state,king_pos))
+                get_king_risk_level(state, expanded_state, king_pos))
             + (w_guard_threatened *
                 get_guard_threatened(state, expanded_state))
             + (w_king_progress * get_king_progress(king_pos)))
+
 
 def get_orthogonal_tiles_around(tile_idx):
     """

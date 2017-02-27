@@ -6,7 +6,6 @@ from evaluations import simple_eval, split_weight_eval
 from utils import record_move_search_time
 from search import iterative_deepening_search
 from TranspositionTable import TranspositionTable
-from threading import _start_new_thread
 
 defaults = {
     'eval': {
