@@ -101,16 +101,25 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        return value[SCORE_INDEX], value[MOVE_INDEX]
+        if not is_piece_threatened(state, expanded_state) or \
+            not can_king_win(state, expanded_state):
+            return value[SCORE_INDEX], value[MOVE_INDEX]
+        else:
+            return quiescene_search(state, expanded_state, evaluate)
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # TODO: quiescence search goes here.
+        # MAKE SURE THIS IS CORRECT
         num_leafs += 1
-        utility = evaluate(state, expanded_state)
-        best_move = None
+        if not is_piece_threatened(state, expanded_state) or \
+                not can_king_win(state, expanded_state):
+            utility = evaluate(state, expanded_state)
+            best_move = None
+        else:
+            utility, best_move = quiescene_search(state, expanded_state, evaluate)
+
     else:
         vs = [(minimax(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
@@ -121,7 +130,10 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
         else:
             utility, best_move = min(vs, key=lambda i: i[0])
         _table[hash_string] = (remaining_depth, utility, best_move, EXACT)
+
     return utility, best_move
+
+
 
 
 def alpha_beta(state, expanded_state, evaluate, remaining_depth,
@@ -255,3 +267,22 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
     return utility, best_move
+
+
+def quiescene_search(state, expanded_state, evaluate):
+    utilities = []
+    for new_state, new_expanded_state, new_move in successors(state,
+                                                              expanded_state):
+        is_term, utility = is_terminal(new_state, new_expanded_state)
+        if is_term:
+            utilities.append((utility,new_move))
+        elif is_piece_threatened(new_state, new_expanded_state) or can_king_win(new_state, new_expanded_state):
+            utilities.append(quiescene_search(new_state, new_expanded_state, evaluate))
+        else:
+            utilities.append((evaluate(new_state, new_expanded_state), new_move))
+
+    if player_turn(state) == DRAGON_PLAYER:
+        return min(utilities, key=lambda i: i[0])
+    else:
+        return max(utilities, key=lambda i: i[0])
+
