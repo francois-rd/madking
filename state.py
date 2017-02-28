@@ -587,7 +587,7 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
             # Now, check if it's a guard, and if the guard can move.
             if at_fourth_side == GUARD:
                 forced_moves.extend(
-                    _all_valid_moves_for_guard(expanded_state,
+                    _all_valid_moves_for_guard(state, expanded_state,
                                                unknown_content_idx))
             king_is_captured = len(forced_moves) == 0
             if king_is_captured:
@@ -1155,9 +1155,9 @@ def _all_valid_non_forced_moves_for_king(state, expanded_state, king_tile_idx):
     """
     moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
     orth_moves= _all_orthogonal_moves(expanded_state, king_tile_idx)
-    orth_moves, caps = _capture_dragon_moves(expanded_state, king_tile_idx)
+    orth_moves, caps = _capture_dragon_moves(expanded_state, orth_moves)
 
-    for key, value in caps:
+    for key in caps.keys():
         if caps[key]:
             moves['capture'].append((king_tile_idx, orth_moves[key][2]))
 
@@ -1182,20 +1182,24 @@ def _all_valid_non_forced_moves_for_king(state, expanded_state, king_tile_idx):
         # King can't both move down and jump over downwards, so just replace.
         orth_moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
 
+    progress = False
     if orth_moves['b'][1]:
         moves['progress'].append((king_tile_idx, orth_moves['b'][2]))
+        progress = True
 
     # Check for threatenedness here and append those to 'threat'
-    for key, value, in  orth_moves:
-        temp_state = copy.deepcopy(state)
-        temp_expanded_state = copy.deepcopy(expanded_state)
-        move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
-        guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
-        dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
-        if guard_threat or dragon_threat:
-            moves['threat'].append((king_tile_idx, value[2]))
-        else:
-            moves['other'].append((king_tile_idx, value[2]))
+    for key in orth_moves.keys():
+        if orth_moves[key][1]:
+            if not key == 'b' or not progress:
+                temp_state = copy.deepcopy(state)
+                temp_expanded_state = copy.deepcopy(expanded_state)
+                move_piece(temp_state, temp_expanded_state, king_tile_idx, orth_moves[key][2]) #problem?
+                guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+                dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+                if guard_threat or dragon_threat:
+                    moves['threat'].append((king_tile_idx, orth_moves[key][2]))
+                else:
+                    moves['other'].append((king_tile_idx, orth_moves[key][2]))
 
     # Append all others to 'other'
     return moves
@@ -1229,7 +1233,7 @@ def count_king_moves(state, expanded_state, king_tile_idx):
                     if from_tile_idx == king_tile_idx])  # Return those.
     # Otherwise, it's the dragon player's turn or there are no forced moves, so
     # all other valid moves are possible.
-    return len(_all_valid_non_forced_moves_for_king(expanded_state,
+    return len(_all_valid_non_forced_moves_for_king(state, expanded_state,
                                                     king_tile_idx))
 
 
@@ -1252,21 +1256,24 @@ def _all_valid_moves_for_guard(state, expanded_state, tile_idx):
     moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
     orth_moves = _all_orthogonal_moves(expanded_state, tile_idx)
 
-    orth_moves, caps = _capture_dragon_moves(expanded_state, tile_idx)
+    orth_moves, caps = _capture_dragon_moves(expanded_state, orth_moves)
 
-    for key, value in caps:
-        if caps[key]:
-            moves['capture'].append((tile_idx, orth_moves[key][2]))
-        else:
-            temp_state = copy.deepcopy(state)
-            temp_expanded_state = copy.deepcopy(expanded_state)
-            move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
-            guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
-            dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
-            if guard_threat or dragon_threat:
-                moves['threat'].append((tile_idx, orth_moves[key][2]))
+    for key in caps.keys():
+        if orth_moves[key][2] == -2:
+            print(orth_moves)
+        if orth_moves[key][1]:
+            if caps[key]:
+                moves['capture'].append((tile_idx, orth_moves[key][2]))
             else:
-                moves['other'].append((tile_idx, orth_moves[key][2]))
+                temp_state = copy.deepcopy(state)
+                temp_expanded_state = copy.deepcopy(expanded_state)
+                move_piece(temp_state, temp_expanded_state, tile_idx, orth_moves[key][2]) #problem?
+                guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+                dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+                if guard_threat or dragon_threat:
+                    moves['threat'].append((tile_idx, orth_moves[key][2]))
+                else:
+                    moves['other'].append((tile_idx, orth_moves[key][2]))
 
     # Check for threatenedness here and append those to 'threat'
 
@@ -1393,10 +1400,6 @@ def all_valid_moves(state, expanded_state):
     :rtype: list((byte, byte))
     """
     all_moves = []
-    king_progress = []
-    captures = []
-    threats = []
-    other_moves = []
     if is_winning_state(state):  # Check if result has already been computed.
         return all_moves
     king_tile_idx = get_king_tile_index(state)
@@ -1417,7 +1420,7 @@ def all_valid_moves(state, expanded_state):
                                                               king_tile_idx)
         guard_moves = []
         for _, idx in get_live_guards_enumeration(state):
-            guard_moves.append(_all_valid_moves_for_guard(expanded_state, idx))
+            guard_moves.append(_all_valid_moves_for_guard(state, expanded_state, idx))
 
         # order moves as progress, capture, threat, other
         all_moves.extend(king_moves['progress'])
@@ -1439,6 +1442,10 @@ def all_valid_moves(state, expanded_state):
         for _, idx in get_live_dragon_enumeration(state):
             all_moves.extend(_all_valid_moves_for_dragon(expanded_state,
                                                          idx - DRAGON_BASE))
+    print(king_player_turn)
+    print(state)
+    print(all_moves)
+    print("Returning from all_valid_moves")
     return all_moves
 
 
@@ -1479,12 +1486,12 @@ def is_terminal(state, expanded_state):
             return False, 0
         # Otherwise, the king is not on the last rank, and also not captured,
         # so it's a draw iff the king player has no possible valid moves.
-        if len(_all_valid_non_forced_moves_for_king(expanded_state,
+        if len(_all_valid_non_forced_moves_for_king(state, expanded_state,
                                                     king_tile_idx)) == 0:
             # King has no valid moves, but the guards still might.
             has_moves = False
             for _, idx in get_live_guards_enumeration(state):
-                if _all_valid_moves_for_guard(expanded_state, idx):
+                if _all_valid_moves_for_guard(state, expanded_state, idx):
                     has_moves = True
                     break
             if not has_moves:  # There are no possible guard moves either.
@@ -1519,8 +1526,12 @@ def successors(state, expanded_state):
         tuples, one tuple for each successor of the given state
     :rtype: list((array of bytes, dict(byte, char), (byte, byte)))
     """
+    print("Entering successor")
     all_successors = []
-    for from_tile_idx, to_tile_idx in all_valid_moves(state, expanded_state):
+    result = all_valid_moves(state, expanded_state)
+    print("Printing result")
+    print(result)
+    for from_tile_idx, to_tile_idx in result:
         new_state = copy.deepcopy(state)
         new_expanded_state = create_expanded_state_representation(new_state)
         move_piece(new_state, new_expanded_state, from_tile_idx, to_tile_idx)
