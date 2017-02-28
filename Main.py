@@ -3,7 +3,7 @@ from ui import *
 from minimax import *
 from time import sleep
 from evaluations import simple_eval, split_weight_eval
-from utils import record_move_search_time
+from utils import record_move_data
 from search import iterative_deepening_search
 from TranspositionTable import TranspositionTable
 
@@ -25,20 +25,12 @@ defaults = {
             TranspositionTable.replace_older_value_or_else_overall_oldest,
         'older-else-new':
             TranspositionTable.replace_older_value_or_else_new_entry,
-        'shallower-else-some-shallower':
-            TranspositionTable.replace_shallower_value_or_else_some_shallower,
+        'shallower-else-shallower-with-first': TranspositionTable.
+            replace_shallower_value_or_else_shallower_with_first,
         'shallower-else-overall-oldest':
             TranspositionTable.replace_shallower_value_or_else_overall_oldest,
         'shallower-else-new':
             TranspositionTable.replace_shallower_value_or_else_new_entry,
-        'smaller-else-some-smaller':
-            TranspositionTable.replace_smaller_subtree_or_else_some_smaller,
-        'smaller-else-overall-oldest':
-            TranspositionTable.replace_smaller_subtree_or_else_overall_oldest,
-        'smaller-else-new':
-            TranspositionTable.replace_smaller_subtree_or_else_new_entry,
-        'two-deep': TranspositionTable.replace_two_deep,
-        'two-big': TranspositionTable.replace_two_big
     },
     'replace_name': 'overall-oldest',
     'table-size': 1000000
@@ -66,8 +58,10 @@ def setup_game():
 
 def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
     """
-    Returns the next move to be played for this ply, either from a human or
-    else from the AI.
+    Returns (<move>, <time>), where <move> is the next move to be played for
+    this ply, either from a human or else from the AI, and <time> is the time
+    taken by the AI to decide on the move, or else None if the move was made by
+    a human.
 
     :param state: a compact state representation
     :type state: array of bytes
@@ -89,10 +83,10 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
     :return: a valid move as a (<from-tile-index>, <to-tile-index>) pair
-    :rtype: (byte, byte)
+    :rtype: ((byte, byte), float)
     """
     if from_human:
-        return get_player_move(state, expanded_state)
+        return get_player_move(state, expanded_state), None
     else:
         from threading import Thread
 
@@ -125,8 +119,7 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
         print("After", time, "seconds, the chosen move is:",
               string_position(move[0]) + string_position(move[1]))
         print("Move utility:", utility)
-        record_move_search_time(time, evaluate, search, max_depth)
-        return move
+        return move, time
 
 
 def play_ply(state, expanded_state, for_human, pause_for, move_number,
@@ -134,6 +127,7 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
     """
     Executes a full game ply either for a human player or for the AI. Returns
     True iff the game has reached a terminal state as a result of the ply.
+    Records move data if the move is made by the AI.
 
     :param state: a compact state representation
     :type state: array of bytes
@@ -163,10 +157,13 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
     :rtype: bool
     """
     draw_board(state, move_number)
-    from_tile_idx, to_tile_idx = next_move(state, expanded_state, for_human,
-                                           evaluate, search, max_depth)
+    move, time = next_move(state, expanded_state, for_human, evaluate, search,
+                           max_depth)
+    if time is not None:  # Move was made by the AI.
+        record_move_data(search, evaluate, max_depth, move_number,
+                         player_turn(state), time)
     sleep(pause_for)
-    move_piece(state, expanded_state, from_tile_idx, to_tile_idx)
+    move_piece(state, expanded_state, *move)
     print('')
     print('')
     terminal, utility = is_terminal(state, expanded_state)

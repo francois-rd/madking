@@ -4,9 +4,20 @@ from state import *
 _table = None
 DEFAULT_DEPTH_LIMIT = 4
 
+# For minimax and alpha beta.
 num_term = 0
 num_leafs = 0
 num_usable_hits = 0
+
+# For alpha beta only.
+num_usable_hits_exact = 0
+num_usable_hits_alpha = 0
+num_usable_hits_beta = 0
+num_usable_hits_pruning = 0
+num_move_ordering_alpha_cutoff = 0
+num_move_ordering_beta_cutoff = 0
+num_alpha_cutoff = 0
+num_beta_cutoff = 0
 
 
 def init_table(max_size, replacement_policy):
@@ -39,6 +50,47 @@ def get_table_count():
     return len(_table)
 
 
+def get_table_metadata_and_global_counters_then_reset():
+    """
+    Returns a list containing all the metadata of the global TranspositionTable
+    and all the global counters used by minimax and alpha beta search, then
+    resets all of these.
+
+    :return: a list containing all the counters
+    """
+    global _table
+    global num_term
+    global num_leafs
+    global num_usable_hits
+    global num_usable_hits_exact
+    global num_usable_hits_alpha
+    global num_usable_hits_beta
+    global num_usable_hits_pruning
+    global num_move_ordering_alpha_cutoff
+    global num_move_ordering_beta_cutoff
+    global num_alpha_cutoff
+    global num_beta_cutoff
+    counters = [_table.get_replacement_policy().__name__, _table.get_max_size(),
+                get_table_count(), *_table.get_counters(), num_term, num_leafs,
+                num_usable_hits, num_usable_hits_exact, num_usable_hits_alpha,
+                num_usable_hits_beta, num_usable_hits_pruning,
+                num_move_ordering_alpha_cutoff, num_move_ordering_beta_cutoff,
+                num_alpha_cutoff, num_beta_cutoff]
+    _table.reset_counters()
+    num_term = 0
+    num_leafs = 0
+    num_usable_hits = 0
+    num_usable_hits_exact = 0
+    num_usable_hits_alpha = 0
+    num_usable_hits_beta = 0
+    num_usable_hits_pruning = 0
+    num_move_ordering_alpha_cutoff = 0
+    num_move_ordering_beta_cutoff = 0
+    num_alpha_cutoff = 0
+    num_beta_cutoff = 0
+    return counters
+
+
 def dump_table(filename):
     """
     Prints the global transposition table to the file with the given name in
@@ -65,8 +117,22 @@ def print_utility_move_and_global_counters(result):
     global num_term
     global num_leafs
     global num_usable_hits
+    global num_usable_hits_exact
+    global num_usable_hits_alpha
+    global num_usable_hits_beta
+    global num_usable_hits_pruning
+    global num_move_ordering_alpha_cutoff
+    global num_move_ordering_beta_cutoff
+    global num_alpha_cutoff
+    global num_beta_cutoff
     print("Final:", "utility", result[0], "move", result[1], "terminal",
           num_term, "leafs", num_leafs, "usable_hits", num_usable_hits)
+    print("For alpha beta only:", "usable_hits_exact", num_usable_hits_exact,
+          "usable_hits_alpha", num_usable_hits_alpha, "usable_hits_beta",
+          num_usable_hits_beta, "usable_hits_pruning", num_usable_hits_pruning,
+          "move_ordering_alpha_cutoff", num_move_ordering_alpha_cutoff,
+          "move_ordering_beta_cutoff", num_move_ordering_beta_cutoff,
+          "alpha_cutoff", num_alpha_cutoff, "beta_cutoff", num_beta_cutoff)
 
 
 def minimax(state, expanded_state, evaluate, remaining_depth):
@@ -135,7 +201,8 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
 
 
 
-
+# Does not work same as minimax
+# it should have same move as minimax
 def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                alpha=DRAGON_WIN, beta=KING_WIN):
     """
@@ -172,46 +239,68 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
     global num_term
     global num_leafs
     global num_usable_hits
+    global num_usable_hits_exact
+    global num_usable_hits_alpha
+    global num_usable_hits_beta
+    global num_usable_hits_pruning
+    global num_move_ordering_alpha_cutoff
+    global num_move_ordering_beta_cutoff
+    global num_alpha_cutoff
+    global num_beta_cutoff
     hash_string = hash_state(state)
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
+        num_usable_hits += 1
         flags = value[FLAGS_INDEX]
         score = value[SCORE_INDEX]
         if flags == EXACT:
-            num_usable_hits += 1
+            num_usable_hits_exact += 1
             return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
+            num_usable_hits_alpha += 1
             alpha = max(alpha, score)
         if flags == BETA_CUTOFF:
+            num_usable_hits_beta += 1
             beta = min(beta, score)
         if alpha >= beta:
-            num_usable_hits += 1
+            num_usable_hits_pruning += 1
             return score, value[MOVE_INDEX]
+
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # TODO: quiescence search goes here.
         num_leafs += 1
+        # if not is_piece_threatened(state, expanded_state) or \
+        # not can_king_win(state, expanded_state):
         utility = evaluate(state, expanded_state)
         best_move = None
+        # else:
+        # utility, best_move = quiescene_search(state, expanded_state, evaluate)
     else:
         # Examine the stored move first. If it leads to an alpha or a beta
         # cutoff, we don't need to evaluate any of the other successors!
-        is_max = player_turn(state) == KING_PLAYER
         utility = stored_move = best_move = None
         if value is not None:
             stored_move = best_move = value[MOVE_INDEX]
+
             stored_state = copy.deepcopy(state)
+
             stored_expanded_state = \
                 create_expanded_state_representation(stored_state)
+
             move_piece(stored_state, stored_expanded_state, best_move[0],
                        best_move[1])
+
             utility = alpha_beta(stored_state, stored_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
+
+            is_max = player_turn(stored_state) == KING_PLAYER
+
             if is_max:
                 if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_move_ordering_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
                     return utility, best_move
@@ -219,6 +308,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     alpha = max(alpha, utility)
             else:  # Is min.
                 if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_move_ordering_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
                     return utility, best_move
@@ -238,11 +328,15 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta(new_state, new_expanded_state, evaluate,
                                   remaining_depth - 1, alpha, beta)[0]
+
+            is_max = player_turn(new_state) == KING_PLAYER
+
             if is_max:
                 if utility < new_util:
                     utility = new_util
                     best_move = new_move
                 if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
                     return utility, best_move
@@ -253,6 +347,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     utility = new_util
                     best_move = new_move
                 if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
                     return utility, best_move
@@ -267,6 +362,8 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
     return utility, best_move
+
+
 
 
 def quiescene_search(state, expanded_state, evaluate):
