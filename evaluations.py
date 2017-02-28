@@ -350,8 +350,6 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     :return: an integer indicating the level of risk for the king
     :rtype: int
     """
-    surrounding_tiles = get_orthogonal_tiles_around(king_pos)
-    surrounding_tiles += get_diagonal_tiles_around(king_pos)
     """
     surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
     surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
