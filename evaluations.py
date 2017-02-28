@@ -360,7 +360,11 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     # Currently, king_risk_level is calculated by the number of possible moves
     # that KING can make. If the KING is surrounded by DRAGONS, he will have
     # fewer possible moves.
-    return count_king_moves(state, expanded_state, king_tile_idx)
+
+    #not implemented correctly, just return 0 for now
+    return 0
+
+    #return count_king_moves(state, expanded_state, king_tile_idx)
 
 
 def _test():
