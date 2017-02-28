@@ -43,6 +43,39 @@ def get_pos(tile_idx):
     """
     return abs(tile_idx % BOARD_NUM_RANKS - 4), tile_idx // BOARD_NUM_RANKS
 
+def draw_board_plain(state):
+    """
+    Draws the board from the given state representation to standard output.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    """
+    board_str = ""
+    board = [[EMPTY] * BOARD_NUM_FILES for _ in range(BOARD_NUM_RANKS)]
+    row, col = get_pos(get_king_tile_index(state))
+    board[row][col] = KING
+
+    for _, guard_idx in get_live_guards_enumeration(state):
+        row, col = get_pos(guard_idx)
+        board[row][col] = GUARD
+
+    for _, dragon_idx in get_live_dragon_enumeration(state):
+        row, col = get_pos(dragon_idx - DRAGON_BASE)
+        board[row][col] = DRAGON
+
+    for i, rank in enumerate(board):
+        board_str += RANK[i] + OFF_THE_BOARD
+        for tile_content in rank:
+            board_str += _SPACE + tile_content
+        board_str += "\n"
+    board_str += "\n"
+
+    board_str += OFF_THE_BOARD + OFF_THE_BOARD
+    for f in FILE:
+        board_str += OFF_THE_BOARD + f
+    board_str += "\n"
+    print(board_str)
+
 
 def draw_board(state, move_number, terminal=False, utility=0):
     """

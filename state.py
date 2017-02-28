@@ -510,24 +510,11 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
     determines whether the king is captured or not based on the unknown
     contents of the fourth side and on which player's turn it is.
 
-    Returns (<is-king-captured>, <is-king-player's-turn>, <forced-moves>),
+    Returns (<is-king-captured>, <is-king-player's-turn>),
     where
         <is-king-captured> is True iff the king is captured and cannot possibly
             escape,
         <is-king-player's-turn> is True iff it is the king player's turn, and
-        <forced-moves> is a list of (<from-tile-index>, <to-tile-index>)
-            representing any of the possible moves that the king player must
-            immediately make in order to avoid capture by the dragons (moves
-            that are forced in order to prevent defeat). Note: if
-            <is-king-captured> is True, <forced-moves> will be None because
-            there are no longer any moves the king player can make to avoid
-            capture. On the other hand, if <is-king-player's-turn> is False,
-            then <forced-moves> will be None because it is not the king
-            player's turn to move. Finally, if <is-king-captured> is False and
-            <is-king-player's-turn> is True, then <forced-moves> is None iff
-            the king is not in immediate enough danger that the king player
-            faces a set of forced moves (so all possible legal moves are
-            playable).
 
     :param state: a compact state representation
     :type state: array of bytes
@@ -553,69 +540,20 @@ def _is_king_captured_fourth_side(state, expanded_state, king_tile_idx,
         should at least be known if the given index represents a tile that
         actually is on the board
     :type unknown_content_on_board: bool
-    :return: (<is-king-captured>, <is-king-player's-turn>, <forced-moves>)
-    :rtype: (bool, bool, list((byte, byte)))
+    :return: (<is-king-captured>, <is-king-player's-turn>)
+    :rtype: (bool, bool)
     """
     if unknown_content_on_board:
         at_fourth_side = expanded_state[unknown_content_idx]
     else:
         at_fourth_side = OFF_THE_BOARD
     if player_turn(state) == DRAGON_PLAYER:
-        return at_fourth_side != EMPTY, False, None
+        return at_fourth_side != EMPTY, False
     else:  # It's the king player's turn.
         if at_fourth_side == EMPTY:
-            return False, True, None
-        elif at_fourth_side == GUARD or at_fourth_side == OFF_THE_BOARD:
-            # King escapes by capturing or having a guard capture a dragon so
-            # that there are just 2 dragons surrounding him. These are all
-            # forced moves because if no dragon is captured, the king is.
-            # Another possibility is that, if it's a guard blocking the king,
-            # the guard can actually just move out of the way, so that the
-            # fourth side becomes empty.
-            first_dragon_forced_moves = \
-                _moves_capturing_dragon_by_king_or_guard(expanded_state,
-                                                         first_dragon_idx)
-            second_dragon_forced_moves = \
-                _moves_capturing_dragon_by_king_or_guard(expanded_state,
-                                                         second_dragon_idx)
-            third_dragon_forced_moves = \
-                _moves_capturing_dragon_by_king_or_guard(expanded_state,
-                                                         third_dragon_idx)
-            forced_moves = first_dragon_forced_moves
-            forced_moves.extend(second_dragon_forced_moves)
-            forced_moves.extend(third_dragon_forced_moves)
-            # Now, check if it's a guard, and if the guard can move.
-            if at_fourth_side == GUARD:
-                forced_moves.extend(
-                    _all_valid_moves_for_guard(expanded_state,
-                                               unknown_content_idx))
-            king_is_captured = len(forced_moves) == 0
-            if king_is_captured:
-                forced_moves = None
-            return king_is_captured, True, forced_moves
-        else:  # at_fourth_side == DRAGON. So unknown_content_idx has a dragon.
-            # King escapes by capturing a dragon and moving to where the dragon
-            # was. This leaves the tile he was on empty, implying that the next
-            # move still has an escape for him, so he won't immediately be
-            # captured. If it's the guard that captures, then the king is still
-            # 4-sides surrounded, and so would be captured right away.
-            forced_moves = []
-            if _is_dragon_surrounded_by_king_and_guard(expanded_state,
-                                                       first_dragon_idx):
-                forced_moves.append((king_tile_idx, first_dragon_idx))
-            if _is_dragon_surrounded_by_king_and_guard(expanded_state,
-                                                       second_dragon_idx):
-                forced_moves.append((king_tile_idx, second_dragon_idx))
-            if _is_dragon_surrounded_by_king_and_guard(expanded_state,
-                                                       third_dragon_idx):
-                forced_moves.append((king_tile_idx, third_dragon_idx))
-            if _is_dragon_surrounded_by_king_and_guard(expanded_state,
-                                                       unknown_content_idx):
-                forced_moves.append((king_tile_idx, unknown_content_idx))
-            king_is_captured = len(forced_moves) == 0
-            if king_is_captured:
-                forced_moves = None
-            return king_is_captured, True, forced_moves
+            return False, True
+        else:
+            return True, True
 
 
 def _is_king_captured(state, expanded_state, king_tile_idx):
@@ -629,19 +567,6 @@ def _is_king_captured(state, expanded_state, king_tile_idx):
         <is-king-captured> is True iff the king is captured and cannot possibly
             escape,
         <is-king-player's-turn> is True iff it is the king player's turn, and
-        <forced-moves> is a list of (<from-tile-index>, <to-tile-index>)
-            representing any of the possible moves that the king player must
-            immediately make in order to avoid capture by the dragons (moves
-            that are forced in order to prevent defeat). Note: if
-            <is-king-captured> is True, <forced-moves> will be None because
-            there are no longer any moves the king player can make to avoid
-            capture. On the other hand, if <is-king-player's-turn> is False,
-            then <forced-moves> will be None because it is not the king
-            player's turn to move. Finally, if <is-king-captured> is False and
-            <is-king-player's-turn> is True, then <forced-moves> is None iff
-            the king is not in immediate enough danger that the king player
-            faces a set of forced moves (so all possible legal moves are
-            playable).
 
     :param state: a compact state representation
     :type state: array of bytes
@@ -650,8 +575,8 @@ def _is_king_captured(state, expanded_state, king_tile_idx):
     :param king_tile_idx: tile index (0-24) corresponding to the board
         position with the king
     :type king_tile_idx: byte
-    :return: (<is-king-captured>, <is-king-player's-turn>, <forced-moves>)
-    :rtype: (bool, bool, list((byte, byte)))
+    :return: (<is-king-captured>, <is-king-player's-turn>)
+    :rtype: (bool, bool)
     """
     on_board_left, dragon_left, left_idx, at_left = \
         _check_left(expanded_state, king_tile_idx, [DRAGON])
@@ -682,7 +607,7 @@ def _is_king_captured(state, expanded_state, king_tile_idx):
                                              left_idx, above_idx, right_idx,
                                              on_board_right)
     else:  # There aren't at least 3 dragons surrounding the king.
-        return False, player_turn(state) == KING_PLAYER, None
+        return False, player_turn(state) == KING_PLAYER
 
 
 def _is_guard_surrounded(expanded_state, guard_idx):
@@ -1155,9 +1080,9 @@ def _all_valid_non_forced_moves_for_king(state, expanded_state, king_tile_idx):
     """
     moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
     orth_moves= _all_orthogonal_moves(expanded_state, king_tile_idx)
-    orth_moves, caps = _capture_dragon_moves(expanded_state, king_tile_idx)
+    orth_moves, caps = _capture_dragon_moves(expanded_state, orth_moves)
 
-    for key, value in caps:
+    for key in caps.keys():
         if caps[key]:
             moves['capture'].append((king_tile_idx, orth_moves[key][2]))
 
@@ -1182,20 +1107,24 @@ def _all_valid_non_forced_moves_for_king(state, expanded_state, king_tile_idx):
         # King can't both move down and jump over downwards, so just replace.
         orth_moves['b'] = _check_below(expanded_state, below_idx, [EMPTY])
 
+    progress = False
     if orth_moves['b'][1]:
         moves['progress'].append((king_tile_idx, orth_moves['b'][2]))
+        progress = True
 
     # Check for threatenedness here and append those to 'threat'
-    for key, value, in  orth_moves:
-        temp_state = copy.deepcopy(state)
-        temp_expanded_state = copy.deepcopy(expanded_state)
-        move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
-        guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
-        dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
-        if guard_threat or dragon_threat:
-            moves['threat'].append((king_tile_idx, value[2]))
-        else:
-            moves['other'].append((king_tile_idx, value[2]))
+    for key in orth_moves.keys():
+        if orth_moves[key][1]:
+            if not key == 'b' or not progress:
+                temp_state = copy.deepcopy(state)
+                temp_expanded_state = copy.deepcopy(expanded_state)
+                move_piece(temp_state, temp_expanded_state, king_tile_idx, orth_moves[key][2]) #problem?
+                guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+                dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+                if guard_threat or dragon_threat:
+                    moves['threat'].append((king_tile_idx, orth_moves[key][2]))
+                else:
+                    moves['other'].append((king_tile_idx, orth_moves[key][2]))
 
     # Append all others to 'other'
     return moves
@@ -1216,7 +1145,7 @@ def count_king_moves(state, expanded_state, king_tile_idx):
     :type king_tile_idx: byte
     :return: the number of valid moves the king can make
     """
-    king_is_captured, king_player_turn, forced_moves = \
+    king_is_captured, king_player_turn = \
         _is_king_captured(state, expanded_state, king_tile_idx)
     if king_is_captured:  # No forced moves. Doesn't matter the player's turn.
         # Set the terminal state bits, for efficiency.
@@ -1229,7 +1158,7 @@ def count_king_moves(state, expanded_state, king_tile_idx):
                     if from_tile_idx == king_tile_idx])  # Return those.
     # Otherwise, it's the dragon player's turn or there are no forced moves, so
     # all other valid moves are possible.
-    return len(_all_valid_non_forced_moves_for_king(expanded_state,
+    return len(_all_valid_non_forced_moves_for_king(state, expanded_state,
                                                     king_tile_idx))
 
 
@@ -1252,21 +1181,22 @@ def _all_valid_moves_for_guard(state, expanded_state, tile_idx):
     moves = {'capture': [], 'threat': [], 'progress': [], 'other': []}
     orth_moves = _all_orthogonal_moves(expanded_state, tile_idx)
 
-    orth_moves, caps = _capture_dragon_moves(expanded_state, tile_idx)
+    orth_moves, caps = _capture_dragon_moves(expanded_state, orth_moves)
 
-    for key, value in caps:
-        if caps[key]:
-            moves['capture'].append((tile_idx, orth_moves[key][2]))
-        else:
-            temp_state = copy.deepcopy(state)
-            temp_expanded_state = copy.deepcopy(expanded_state)
-            move_piece(temp_state, temp_expanded_state, orth_moves[key][0], orth_moves[key][1])
-            guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
-            dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
-            if guard_threat or dragon_threat:
-                moves['threat'].append((tile_idx, orth_moves[key][2]))
+    for key in caps.keys():
+        if orth_moves[key][1]:
+            if caps[key]:
+                moves['capture'].append((tile_idx, orth_moves[key][2]))
             else:
-                moves['other'].append((tile_idx, orth_moves[key][2]))
+                temp_state = copy.deepcopy(state)
+                temp_expanded_state = copy.deepcopy(expanded_state)
+                move_piece(temp_state, temp_expanded_state, tile_idx, orth_moves[key][2]) #problem?
+                guard_threat = is_guard_threatened(temp_state, temp_expanded_state)
+                dragon_threat = is_dragon_threatened(temp_state, temp_expanded_state)
+                if guard_threat or dragon_threat:
+                    moves['threat'].append((tile_idx, orth_moves[key][2]))
+                else:
+                    moves['other'].append((tile_idx, orth_moves[key][2]))
 
     # Check for threatenedness here and append those to 'threat'
 
@@ -1330,7 +1260,7 @@ def ordered_dragon_moves(state,expanded_state,tile_idx):
         move_piece(temp_state,temp_expanded_state,\
                     m[0],m[1])
         if _is_king_captured(temp_state,temp_expanded_state,\
-                                                king_pos):
+                                                king_pos)[0]:
             ordered_moves.append(m)
     potential_moves = [m for m in moves if m not in ordered_moves]
     for m in potential_moves:
@@ -1357,7 +1287,7 @@ def ordered_dragon_moves(state,expanded_state,tile_idx):
         # but not actually using the move to determine if the king if captured.
         for next_m in next_moves:
             if _is_king_captured(temp_state,temp_expanded_state,\
-                                                king_pos):
+                                                king_pos)[0]:
                 ordered_moves.append(m)
     potential_moves = [m for m in moves if m not in ordered_moves]
     for m in potential_moves:
@@ -1393,14 +1323,10 @@ def all_valid_moves(state, expanded_state):
     :rtype: list((byte, byte))
     """
     all_moves = []
-    king_progress = []
-    captures = []
-    threats = []
-    other_moves = []
     if is_winning_state(state):  # Check if result has already been computed.
         return all_moves
     king_tile_idx = get_king_tile_index(state)
-    king_is_captured, king_player_turn, forced_moves = \
+    king_is_captured, king_player_turn = \
         _is_king_captured(state, expanded_state, king_tile_idx)
     if king_is_captured:  # No forced moves. Doesn't matter the player's turn.
         # Set the terminal state bits, for efficiency.
@@ -1408,16 +1334,14 @@ def all_valid_moves(state, expanded_state):
         _set_winner(state, DRAGON_PLAYER)
         return all_moves
     if king_player_turn:
-        if forced_moves is not None:  # If the king is forced to make a move.
-            return forced_moves  # Return those.
-        # Otherwise, there are no forced moves, so get all other valid moves.
+        # There are no forced moves, so get all other valid moves.
 
         # We get dicts back now with capture, threat, progress, other
         king_moves = _all_valid_non_forced_moves_for_king(state, expanded_state,
                                                               king_tile_idx)
         guard_moves = []
         for _, idx in get_live_guards_enumeration(state):
-            guard_moves.append(_all_valid_moves_for_guard(expanded_state, idx))
+            guard_moves.append(_all_valid_moves_for_guard(state, expanded_state, idx))
 
         # order moves as progress, capture, threat, other
         all_moves.extend(king_moves['progress'])
@@ -1466,25 +1390,21 @@ def is_terminal(state, expanded_state):
         _mark_as_winning_state(state)
         _set_winner(state, KING_PLAYER)
         return True, KING_WIN  # Then it's a win for the king player.
-    king_is_captured, king_player_turn, forced_moves = \
+    king_is_captured, king_player_turn = \
         _is_king_captured(state, expanded_state, king_tile_idx)
     if king_is_captured:  # If the king is captured.
         _mark_as_winning_state(state)
         _set_winner(state, DRAGON_PLAYER)
         return True, DRAGON_WIN  # Then it's a win for the dragon player.
     if king_player_turn:  # If it's the king player's turn.
-        if forced_moves is not None:  # If he has forced moves, he can move, so
-            # since he is not on the last rank and is not captured, it is not
-            # a terminal state.
-            return False, 0
-        # Otherwise, the king is not on the last rank, and also not captured,
+        # The king is not on the last rank, and also not captured,
         # so it's a draw iff the king player has no possible valid moves.
-        if len(_all_valid_non_forced_moves_for_king(expanded_state,
+        if len(_all_valid_non_forced_moves_for_king(state, expanded_state,
                                                     king_tile_idx)) == 0:
             # King has no valid moves, but the guards still might.
             has_moves = False
             for _, idx in get_live_guards_enumeration(state):
-                if _all_valid_moves_for_guard(expanded_state, idx):
+                if _all_valid_moves_for_guard(state, expanded_state, idx):
                     has_moves = True
                     break
             if not has_moves:  # There are no possible guard moves either.

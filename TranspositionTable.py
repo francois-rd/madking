@@ -45,13 +45,12 @@ class TranspositionTable:
         :param max_size: the maximum number of entries in the table
         :type max_size: integral
         :param replacement_policy: a function that takes a TranspositionTable,
-            a key, and a value, and returns a key and a value, which is either
-            one of the entries in the table whose value is the best candidate
-            for removal when the table is full and a new entry must be added,
-            or is the key and value of the given/new entry, which is itself not
-            good enough to be added to the table (i.e. the new entry is
-            rejected)
-        :type replacement_policy: (TranspositionTable, X, Y) => X, Y, where X
+            a key, and a value, and adds the key-value pair to the table if it
+            is not full, or else determines the best candidate for removal and
+            replaces that entry with the new key-value pair. The best candidate
+            might be the given key-value pair, in which case it is not added
+            (i.e. the new entry is rejected)
+        :type replacement_policy: (TranspositionTable, X, Y) => None, where X
             is the type of the keys in this table, and Y is the type of the
             values
         """
@@ -62,33 +61,24 @@ class TranspositionTable:
         self._number_entries_replaced = 0
         self._number_entries_rejected = 0
         self._number_direct_accesses = 0
+        self._number_entries_swapped = 0
+        self._number_directly_added = 0
         self._number_safe_accesses = 0
         self._number_hits = 0
         self._replacement_policy = replacement_policy
 
     def __setitem__(self, key, value):
         """
-        Adds an entry to this TranspositionTable. If the table is full, the
-        replacement policy is used to find an existing entry to replace. The
-        policy may also determined that no entry should be replaced, in which
-        case the new entry is simply rejected (i.e. not added to the table).
+        Adds an entry to this TranspositionTable using the replacement policy.
+        If the table is full, the replacement policy is also used to find an
+        existing entry to replace. The policy may also determined that no entry
+        should be replaced, in which case the new entry is simply rejected
+        (i.e. not added to the table).
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
         """
-        self._number_attempted_mutations += 1
-        if self._current_size == self._max_size:
-            key_to_remove, value_to_remove = \
-                self._replacement_policy(self, key, value)
-            if key_to_remove == key and value_to_remove == value:
-                self._number_entries_rejected += 1
-            else:
-                self._number_entries_replaced += 1
-                del self._table[key_to_remove]
-                self._table[key] = value
-        else:
-            self._current_size += 1
-            self._table[key] = value
+        self._replacement_policy(self, key, value)
 
     def __getitem__(self, key):
         """
@@ -134,6 +124,62 @@ class TranspositionTable:
             self._number_hits += 1
         return value
 
+    def reset_counters(self):
+        """
+        Resets the following counters to 0, without also clearing the table:
+            number_attempted_mutations
+            number_entries_replaced
+            number_entries_rejected
+            number_direct_accesses
+            number_entries_swapped
+            number_directly_added
+            number_safe_accesses
+            number_hits
+        """
+        self._number_attempted_mutations = 0
+        self._number_entries_replaced = 0
+        self._number_entries_rejected = 0
+        self._number_direct_accesses = 0
+        self._number_entries_swapped = 0
+        self._number_directly_added = 0
+        self._number_safe_accesses = 0
+        self._number_hits = 0
+
+    def get_counters(self):
+        """
+        Returns a tuple containing the current value of all the counters. The
+        counters are ordered as follows:
+            number_attempted_mutations
+            number_entries_replaced
+            number_entries_rejected
+            number_direct_accesses
+            number_entries_swapped
+            number_directly_added
+            number_safe_accesses
+            number_hits
+        """
+        return (self._number_attempted_mutations,
+                self._number_entries_replaced, self._number_entries_rejected,
+                self._number_direct_accesses, self._number_entries_swapped,
+                self._number_directly_added, self._number_safe_accesses,
+                self._number_hits)
+
+    def get_max_size(self):
+        """
+        Returns the maximum size of this TranspositionTable.
+
+        :return: the maximum size of this TranspositionTable
+        """
+        return self._max_size
+
+    def get_replacement_policy(self):
+        """
+        Returns the replacement policy of this TranspositionTable.
+
+        :return: the replacement policy of this TranspositionTable
+        """
+        return self._replacement_policy
+
     def to_json_serializable(self):
         """
         Returns a JSON serializable representation of this TranspositionTable.
@@ -148,6 +194,8 @@ class TranspositionTable:
             'number-entries-replaced': self._number_entries_replaced,
             'number-entries-rejected': self._number_entries_rejected,
             'number-direct-accesses': self._number_direct_accesses,
+            'number-entries-swapped': self._number_entries_swapped,
+            'number-directly-added': self._number_directly_added,
             'number-safe-accesses': self._number_safe_accesses,
             'number-hits': self._number_hits,
             'replacement-policy': self._replacement_policy.__name__
@@ -170,11 +218,13 @@ class TranspositionTable:
         table._current_size = json_object['current-size']
         table._number_attempted_mutations = \
             json_object['number-attempted-mutations']
-        table._number_direct_accesses = json_object['number-direct-accesses']
-        table._number_safe_accesses = json_object['number-safe-accesses']
-        table._number_hits = json_object['number-hits']
         table._number_entries_replaced = json_object['number-entries-replaced']
         table._number_entries_rejected = json_object['number-entries-rejected']
+        table._number_direct_accesses = json_object['number-direct-accesses']
+        table._number_entries_swapped = json_object['number-entries-swapped']
+        table._number_directly_added = json_object['number-directly-added']
+        table._number_safe_accesses = json_object['number-safe-accesses']
+        table._number_hits = json_object['number-hits']
         table._replacement_policy = getattr(table,
                                             json_object['replacement-policy'])
         return table
@@ -183,173 +233,175 @@ class TranspositionTable:
 
     def replace_overall_oldest(self, key, value):
         """
-        Returns the first/oldest (<key>, <value>) pair in the given
-        TranspositionTable.
+        Adds the given key-value pair to the given TranspositionTable, first
+        removing the overall oldest entry in the table if the table is already
+        full.
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the first/oldest entry in the given TranspositionTable
         """
-        return next(self._table.items())
+        self._number_attempted_mutations += 1
+        if self._current_size == self._max_size:
+            self._number_entries_replaced += 1
+            del self._table[next(self._table.keys().__iter__())]
+        else:
+            self._current_size += 1
+            self._number_directly_added += 1
+        self._table[key] = value
 
     def replace_older_value_or_else_overall_oldest(self, key, value):
         """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned. Otherwise, the first/
-        oldest (<key>, <value>) pair in the given TranspositionTable is
-        returned.
+        Adds the given key-value pair to the given TranspositionTable. If an
+        entry with the same key is already present in the table, that entry is
+        removed and replaced by ("swapped with") the new entry. If the table is
+        already full, and no entry with the same key is already present in the
+        table, then the given key-value pair replaces the overall oldest entry
+        in the table, where "oldest" means "the entry that was last added or
+        last replaced longest ago".
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the table entry for the given key, or the first/oldest entry
-            in the TranspositionTable if no such entry exists
         """
-        value_already_in_table = self._table.get(key)
-        if value_already_in_table is not None:
-            return key, value_already_in_table
-        return next(self._table.items())
+        self._number_attempted_mutations += 1
+        if self._table.pop(key, default=None) is None:
+            if self._current_size == self._max_size:
+                self._number_entries_replaced += 1
+                del self._table[next(self._table.keys().__iter__())]
+            else:
+                self._current_size += 1
+                self._number_directly_added += 1
+        else:
+            self._number_entries_swapped += 1
+        self._table[key] = value
 
     def replace_older_value_or_else_new_entry(self, key, value):
         """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned. Otherwise, the new
-        entry is returned.
+        Conditionally adds the given key-value pair to the given
+        TranspositionTable. If an entry with the same key is already present in
+        the table, that entry is removed and replaced by ("swapped with") the
+        new entry. If the table is not full, and no entry with the same key is
+        already present in the table, then the given key-value pair is added to
+        the table. If the table is already full, and no entry with the same key
+        is already present in the table, then the given key-value pair is
+        rejected.
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the table entry for the given key, or the new entry if no such
-            entry exists
         """
-        value_already_in_table = self._table.get(key)
-        if value_already_in_table is not None:
-            return key, value_already_in_table
-        return key, value
+        self._number_attempted_mutations += 1
+        if self._table.pop(key, default=None) is None:
+            if self._current_size == self._max_size:
+                self._number_entries_rejected += 1
+            else:
+                self._current_size += 1
+                self._number_directly_added += 1
+                self._table[key] = value
+        else:
+            self._number_entries_swapped += 1
+            self._table[key] = value
 
-    def replace_shallower_value_or_else_some_shallower(self, key, value):
+    def replace_shallower_value_or_else_shallower_with_first(self, key, value):
         """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the depth of the
-        new entry is greater than the depth of the existing entry. Otherwise,
-        the first (<key>, <value>) pair in the given TranspositionTable that
-        has depth less than that of the new entry is returned (the new entry is
-        returned iff it is shallower than every other entry in the table).
+        Conditionally adds the given key-value pair to the given
+        TranspositionTable. If the table already contains an entry for the
+        given key, then the given key-value pair replaces ("is swapped with")
+        the old entry iff the new entry is at least as deep as the old entry
+        (otherwise, the new entry is rejected). If the table is not full, and
+        no entry with the same key is already present in the table, then the
+        given key-value pair is added to the table. If the table is already
+        full, and no entry with the same key is already present in the table,
+        then the given key-value pair replaces the first entry in the table iff
+        the new entry is at least as deep as the first entry (otherwise, the
+        new entry is rejected).
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the table entry for the given key if it is shallower than the
-            new entry, or the first entry in the TranspositionTable that is
-            shallower than the new entry, or else the new entry itself if no
-            such entry exists
         """
-        depth = value[DEPTH_INDEX]
-        value_already_in_table = self._table.get(key)
-        if value_already_in_table is not None:
-            if depth > value_already_in_table[DEPTH_INDEX]:
-                return key, value_already_in_table
-        for k, v in self._table.items():
-            if depth > v[DEPTH_INDEX]:
-                return k, v
-        return key, value
+        self._number_attempted_mutations += 1
+        value_already_in_table = self._table.pop(key, default=None)
+        if value_already_in_table is None:
+            if self._current_size == self._max_size:
+                first_key = next(self._table.keys().__iter__())
+                first_value = self._table.pop(first_key)
+                if value[DEPTH_INDEX] >= first_value[DEPTH_INDEX]:
+                    self._number_entries_replaced += 1
+                else:
+                    self._number_entries_rejected += 1
+                    key = first_key
+                    value = first_value
+            else:
+                self._current_size += 1
+                self._number_directly_added += 1
+        else:
+            if value[DEPTH_INDEX] >= value_already_in_table[DEPTH_INDEX]:
+                self._number_entries_swapped += 1
+            else:
+                self._number_entries_rejected += 1
+                value = value_already_in_table
+        self._table[key] = value
 
     def replace_shallower_value_or_else_overall_oldest(self, key, value):
         """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the depth of the
-        new entry is greater than the depth of the existing entry. Otherwise,
-        the first/oldest (<key>, <value>) pair in the given TranspositionTable
-        is returned.
+        Conditionally adds the given key-value pair to the given
+        TranspositionTable. If the table already contains an entry for the
+        given key, then the given key-value pair replaces ("is swapped with")
+        the old entry iff the new entry is at least as deep as the old entry
+        (otherwise, the new entry is rejected). If the table is not full, and
+        no entry with the same key is already present in the table, then the
+        given key-value pair is added to the table. If the table is already
+        full, and no entry with the same key is already present in the table,
+        then the given key-value pair replaces the overall oldest entry in the
+        table, where "oldest" means "the entry that was last added or last
+        replaced (including attempted replacements) longest ago".
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the table entry for the given key if it is shallower than the
-            new entry, or the first/oldest entry in the TranspositionTable if
-            no such entry exists or it is not shallower
         """
-        value_already_in_table = self._table.get(key)
-        if value_already_in_table is not None:
-            if value[DEPTH_INDEX] > value_already_in_table[DEPTH_INDEX]:
-                return key, value_already_in_table
-        return next(self._table.items())
+        self._number_attempted_mutations += 1
+        value_already_in_table = self._table.pop(key, default=None)
+        if value_already_in_table is None:
+            if self._current_size == self._max_size:
+                self._number_entries_replaced += 1
+                del self._table[next(self._table.keys().__iter__())]
+            else:
+                self._current_size += 1
+                self._number_directly_added += 1
+        else:
+            if value[DEPTH_INDEX] >= value_already_in_table[DEPTH_INDEX]:
+                self._number_entries_swapped += 1
+            else:
+                self._number_entries_rejected += 1
+                value = value_already_in_table
+        self._table[key] = value
 
     def replace_shallower_value_or_else_new_entry(self, key, value):
         """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the depth of the
-        new entry is greater than the depth of the existing entry. Otherwise,
-        the new entry is returned.
+        Conditionally adds the given key-value pair to the given
+        TranspositionTable. If the table already contains an entry for the
+        given key, then the given key-value pair replaces ("is swapped with")
+        the old entry iff the new entry is at least as deep as the old entry
+        (otherwise, the new entry is rejected). If the table is not full, and
+        no entry with the same key is already present in the table, then the
+        given key-value pair is added to the table. If the table is already
+        full, and no entry with the same key is already present in the table,
+        then the given key-value pair is rejected.
 
         :param key: the key of the new table entry
         :param value: the value of the new table entry
-        :return: the table entry for the given key if it is shallower than the
-            new entry, or the new entry if no such entry exists or it is not
-            shallower
         """
-        value_already_in_table = self._table.get(key)
-        if value_already_in_table is not None:
-            if value[DEPTH_INDEX] > value_already_in_table[DEPTH_INDEX]:
-                return key, value_already_in_table
-        return key, value
-
-    def replace_smaller_subtree_or_else_some_smaller(self, key, value):
-        """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the size of the
-        subtree rooted at the new entry is greater than the size of the subtree
-        rooted at the existing entry. Otherwise, the first (<key>, <value>)
-        pair in the given TranspositionTable whose size is less than that of
-        the new entry is returned (so the new entry is returned iff it is
-        smaller than every other entry in the table).
-
-        :param key: the key of the new table entry
-        :param value: the value of the new table entry
-        :return: the table entry for the given key if the subtree rooted at it
-            is smaller than that of the new entry, or the first entry in the
-            TranspositionTable whose size is less than that of the new entry,
-            or else the new entry itself if no such entry exists
-        """
-        pass
-
-    def replace_smaller_subtree_or_else_overall_oldest(self, key, value):
-        """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the size of the
-        subtree rooted at the new entry is greater than the size of the subtree
-        rooted at the existing entry. Otherwise, the first/oldest
-        (<key>, <value>) pair in the given TranspositionTable is returned.
-
-        :param key: the key of the new table entry
-        :param value: the value of the new table entry
-        :return: the table entry for the given key if the subtree rooted at it
-            is smaller than that of the new entry, or the first/oldest entry in
-            the TranspositionTable if no such entry exists or it is not smaller
-        """
-        pass
-
-    def replace_smaller_subtree_or_else_new_entry(self, key, value):
-        """
-        If the table already contains an entry for the given key, then the
-        (<key>, <value>) pair of that entry is returned iff the size of the
-        subtree rooted at the new entry is greater than the size of the subtree
-        rooted at the existing entry. Otherwise, the new entry is returned.
-
-        :param key: the key of the new table entry
-        :param value: the value of the new table entry
-        :return: the table entry for the given key if the subtree rooted at it
-            is smaller than that of the new entry, or the new entry if no such
-            entry exists or it is not smaller
-        """
-        pass
-
-    def replace_two_deep(self, key, value):
-        """
-        From: Breucker, D., et al. (1998).
-        """
-        # TODO: is this even worth implementing?
-        pass
-
-    def replace_two_big(self, key, value):
-        """
-        From: Breucker, D., et al. (1998).
-        """
-        # TODO: is this even worth implementing?
-        pass
+        self._number_attempted_mutations += 1
+        value_already_in_table = self._table.pop(key, default=None)
+        if value_already_in_table is None:
+            if self._current_size == self._max_size:
+                self._number_entries_rejected += 1
+            else:
+                self._current_size += 1
+                self._number_directly_added += 1
+                self._table[key] = value
+        else:
+            if value[DEPTH_INDEX] >= value_already_in_table[DEPTH_INDEX]:
+                self._number_entries_swapped += 1
+                self._table[key] = value
+            else:
+                self._number_entries_rejected += 1
+                self._table[key] = value_already_in_table

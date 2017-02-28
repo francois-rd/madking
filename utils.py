@@ -1,4 +1,4 @@
-from state import tile_index
+from state import tile_index, KING_PLAYER
 
 FILE = ['A', 'B', 'C', 'D', 'E']
 RANK = ['5', '4', '3', '2', '1']
@@ -24,30 +24,35 @@ def parse_move(str_move):
     return True, tile_index(str_move[0:2]), tile_index(str_move[2:4])
 
 
-def record_move_search_time(time, evaluate, search, max_depth):
+def record_move_data(search, evaluate, max_depth, move_number, player, time):
     """
-    Records the given time to the "timing.csv" file, along with the
-    corresponding evaluation function, search algorithm, and maximum search
-    depth.
+    Records the given data, as well as all the counters in the
+    TranspositionTable and the search algorithms, to a file called
+    "data.tmp.csv". Then, resets all the counters.
 
-    :param time: the time taken for the search
-    :type time: float
+    :param search: a search function taking a state, an expanded state, an
+        evaluation function, a remaining depth, and returning a
+        (<utility>, <move>) pair
+    :type search: (array of bytes,
+                   dict(byte, char),
+                   (array of bytes, dict(byte, char)) => numeric,
+                   int) => (numeric, (byte, byte))
     :param evaluate: a function taking a state and an expanded state and
         returning a heuristic estimate of the state's utility for the current
         player
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param search: a search function taking a state, an expanded state, an
-        evaluation function, an age, a remaining depth, and returning a
-        ((<utility>, <exact>), <move>) pair
-    :type search: (array of bytes,
-                   dict(byte, char),
-                   (array of bytes, dict(byte, char)) => numeric,
-                   int,
-                   int) => ((numeric, bool), (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
+    :param move_number: the count of the moves so far in the game
+    :type move_number: int
+    :param player: the integer ID of the current player
+    :type player: int
+    :param time: the time taken for the search
+    :type time: float
     """
-    with open("timing.csv", "a") as file:
-        print(','.join(str(i) for i in [time, evaluate.__name__,
-                                        search.__name__, max_depth]),
-              file=file)
+    from minimax import get_table_metadata_and_global_counters_then_reset
+    data = [search.__name__, evaluate.__name__, max_depth, move_number,
+            "king" if player == KING_PLAYER else "dragon", time,
+            *get_table_metadata_and_global_counters_then_reset()]
+    with open("data.tmp.csv", "a") as file:
+        print(','.join(str(i) for i in data), file=file)

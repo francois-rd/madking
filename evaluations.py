@@ -315,13 +315,13 @@ def get_guard_threatened(state, expanded_state):
             # fewer than 2 dragons, there is no way this guard could be
             # captured in the next turn, so move on to the next guard.
             if threats == 2:
-                unoccupied_neighbours = \
-                    [i for i in guard_neighbours if i not in used_positions]
-                for unoccupied_tile in unoccupied_neighbours:
+                unoccuppied_neighbours = \
+                        [i for i in guard_neighbours if i not in used_positions]
+                for unoccuppied_tile in unoccuppied_neighbours:
                     second_neighbours = \
-                            get_orthogonal_tiles_around(unoccupied_tile)
+                            get_orthogonal_tiles_around(unoccuppied_tile)
                     second_neighbours.extend(
-                            get_diagonal_tiles_around(unoccupied_tile))
+                            get_diagonal_tiles_around(unoccuppied_tile))
                     for n in second_neighbours:
                         content = expanded_state[n]
                         # Increase the threat if there is a dragon on one
@@ -353,6 +353,7 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     """
     surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
     surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
+>>>>>>> 3be23a347ef461addf721b563b921a33762b10ad
     num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
     num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
     return num_guards - num_dragons
@@ -360,7 +361,11 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     # Currently, king_risk_level is calculated by the number of possible moves
     # that KING can make. If the KING is surrounded by DRAGONS, he will have
     # fewer possible moves.
-    return count_king_moves(state, expanded_state, king_tile_idx)
+
+    #not implemented correctly, just return 0 for now
+    return 0
+
+    #return count_king_moves(state, expanded_state, king_tile_idx)
 
 
 def _test():
