@@ -135,7 +135,8 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
 
 
 
-
+# Does not work same as minimax
+# it should have same move as minimax
 def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                alpha=DRAGON_WIN, beta=KING_WIN):
     """
@@ -187,29 +188,39 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         if alpha >= beta:
             num_usable_hits += 1
             return score, value[MOVE_INDEX]
+
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # TODO: quiescence search goes here.
         num_leafs += 1
+        # if not is_piece_threatened(state, expanded_state) or \
+        # not can_king_win(state, expanded_state):
         utility = evaluate(state, expanded_state)
         best_move = None
+        # else:
+        # utility, best_move = quiescene_search(state, expanded_state, evaluate)
     else:
         # Examine the stored move first. If it leads to an alpha or a beta
         # cutoff, we don't need to evaluate any of the other successors!
-        is_max = player_turn(state) == KING_PLAYER
         utility = stored_move = best_move = None
         if value is not None:
             stored_move = best_move = value[MOVE_INDEX]
+
             stored_state = copy.deepcopy(state)
+
             stored_expanded_state = \
                 create_expanded_state_representation(stored_state)
+
             move_piece(stored_state, stored_expanded_state, best_move[0],
                        best_move[1])
+
             utility = alpha_beta(stored_state, stored_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
+
+            is_max = player_turn(stored_state) == KING_PLAYER
+
             if is_max:
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     _table[hash_string] = (remaining_depth, utility, best_move,
@@ -238,6 +249,9 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta(new_state, new_expanded_state, evaluate,
                                   remaining_depth - 1, alpha, beta)[0]
+
+            is_max = player_turn(new_state) == KING_PLAYER
+
             if is_max:
                 if utility < new_util:
                     utility = new_util
@@ -267,6 +281,8 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
     return utility, best_move
+
+
 
 
 def quiescene_search(state, expanded_state, evaluate):
