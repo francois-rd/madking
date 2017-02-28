@@ -319,9 +319,9 @@ def get_guard_threatened(state, expanded_state):
                         [i for i in guard_neighbours if i not in used_positions]
                 for unoccuppied_tile in unoccuppied_neighbours:
                     second_neighbours = \
-                            get_orthogonal_tiles_around(unoccupied_tile)
+                            get_orthogonal_tiles_around(unoccuppied_tile)
                     second_neighbours.extend(
-                            get_diagonal_tiles_around(unoccupied_tile))
+                            get_diagonal_tiles_around(unoccuppied_tile))
                     for n in second_neighbours:
                         content = expanded_state[n]
                         # Increase the threat if there is a dragon on one
