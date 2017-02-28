@@ -708,6 +708,29 @@ def _is_guard_surrounded(expanded_state, guard_idx):
            (dragon_below and dragon_left and dragon_above)
 
 
+def _is_king_surrounded(expanded_state, king_idx):
+    """
+    Returns True iff the guard at the given tile index is surrounded by at
+    least 3 dragons. *** Does NOT verify that the given tile actually contains
+    a guard, for efficiency reasons. ***
+
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param guard_idx: the tile index (0-24) corresponding to a board position
+    :type guard_idx: byte
+    :return: True iff 3 dragons surround the guard at the given tile index
+    :rtype: bool
+    """
+    _, dragon_left, _, _ = _check_left(expanded_state, king_idx, [DRAGON])
+    _, dragon_right, _, _ = _check_right(expanded_state, king_idx, [DRAGON])
+    _, dragon_above, _, _ = _check_above(expanded_state, king_idx, [DRAGON])
+    _, dragon_below, _, _ = _check_below(expanded_state, king_idx, [DRAGON])
+    return (dragon_left and dragon_above and dragon_right) or \
+           (dragon_above and dragon_right and dragon_below) or \
+           (dragon_right and dragon_below and dragon_left) or \
+           (dragon_below and dragon_left and dragon_above)
+
+
 def _is_dragon_surrounded_by_king_and_guard(expanded_state, dragon_idx):
     """
     Returns True iff the dragon at the given tile index is surrounded by at the
@@ -885,8 +908,8 @@ def is_dragon_threatened(state, expanded_state):
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: the number of DRAGONS threatened to be captured by the king player
-    :rtype: int
+    :return: if any of the dragon is captured
+    :rtype: bool
     """
     count_threatened_tiles = 0
     dragon_positions = get_live_dragon_enumeration(state)
@@ -910,8 +933,8 @@ def is_guard_threatened(state, expanded_state):
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
-    :return: the number of GUARDS threatened to be captured by the dragon player
-    :rtype: int
+    :return: if any of the guards is captured
+    :rtype: bool
     """
     #TODO Double-check this function for correctness.
     count_threatened_tiles = 0
@@ -951,6 +974,16 @@ def is_guard_threatened(state, expanded_state):
             count_threatened_tiles += 1
     return (count_threatened_tiles > 0)
 
+
+def is_piece_threatened(state, expanded_state):
+    return is_guard_threatened(state, expanded_state) or \
+           is_dragon_threatened(state, expanded_state) or \
+           _is_king_surrounded(expanded_state, get_king_tile_index(state))
+
+def can_king_win(state, expanded_state):
+    king_index = get_king_tile_index(state)
+    return king_index in [1, 6 ,11, 16, 21 ] and \
+           expanded_state[king_index-1] == EMPTY
 
 def move_piece(state, expanded_state, from_tile_idx, to_tile_idx):
     """
@@ -1281,6 +1314,7 @@ def _all_valid_moves_for_dragon(expanded_state, tile_idx):
     return [(tile_idx, to_tile_idx) for _, is_empty, to_tile_idx, _ in
             moves.values() if is_empty]
 
+
 def ordered_dragon_moves(state,expanded_state,tile_idx):
     """
     Returns the list of ordering dragon moves: capturing, threatening.
@@ -1349,6 +1383,7 @@ def ordered_dragon_moves(state,expanded_state,tile_idx):
         ordered_moves.append(m)
     return ordered_moves
 
+
 def all_valid_moves(state, expanded_state):
     """
     Returns a list of (<from-tile-index>, <to-tile-index>) pairs representing
@@ -1413,6 +1448,7 @@ def all_valid_moves(state, expanded_state):
     print("Returning from all_valid_moves")
     return all_moves
 
+
 def is_terminal(state, expanded_state):
     """
     Returns a pair (<is-terminal>, <utility>). If it's a draw, then
@@ -1473,6 +1509,7 @@ def is_terminal(state, expanded_state):
             # mark_as_winning_state(state)  # TODO: so rename to mark_as_terminal_state()?
             return True, DRAW  # It's a draw, NOT a win for the king player.
     return False, 0
+
 
 
 def successors(state, expanded_state):
