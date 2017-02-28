@@ -315,15 +315,9 @@ def get_guard_threatened(state, expanded_state):
             # fewer than 2 dragons, there is no way this guard could be
             # captured in the next turn, so move on to the next guard.
             if threats == 2:
-<<<<<<< HEAD
                 unoccuppied_neighbours = \
                         [i for i in guard_neighbours if i not in used_positions]
                 for unoccuppied_tile in unoccuppied_neighbours:
-=======
-                unoccupied_neighbours = \
-                    [i for i in guard_neighbours if i not in used_positions]
-                for unoccupied_tile in unoccupied_neighbours:
->>>>>>> 3be23a347ef461addf721b563b921a33762b10ad
                     second_neighbours = \
                             get_orthogonal_tiles_around(unoccupied_tile)
                     second_neighbours.extend(
@@ -356,10 +350,8 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     :return: an integer indicating the level of risk for the king
     :rtype: int
     """
-<<<<<<< HEAD
     surrounding_tiles = get_orthogonal_tiles_around(king_pos)
     surrounding_tiles += get_diagonal_tiles_around(king_pos)
-=======
     """
     surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
     surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
