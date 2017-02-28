@@ -167,25 +167,24 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        if not is_piece_threatened(state, expanded_state) or \
-            not can_king_win(state, expanded_state):
-            return value[SCORE_INDEX], value[MOVE_INDEX]
-        else:
-            return quiescene_search(state, expanded_state, evaluate)
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0, which
+        # is the only time you would even need to do quiescence (because if
+        # remaining_depth > 0, you would have recursively called minimax, and
+        # that would effectively 'quiesce' for you).
+        return value[SCORE_INDEX], value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # MAKE SURE THIS IS CORRECT
         num_leafs += 1
-        if not is_piece_threatened(state, expanded_state) or \
-                not can_king_win(state, expanded_state):
-            utility = evaluate(state, expanded_state)
-            best_move = None
+        best_move = None
+        if is_piece_threatened(state, expanded_state) or \
+                can_king_win(state, expanded_state):
+            utility = quiescence_search(state, expanded_state, evaluate)
         else:
-            utility, best_move = quiescene_search(state, expanded_state, evaluate)
-
+            utility = evaluate(state, expanded_state)
     else:
         vs = [(minimax(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
@@ -200,9 +199,6 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     return utility, best_move
 
 
-
-# Does not work same as minimax
-# it should have same move as minimax
 def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                alpha=DRAGON_WIN, beta=KING_WIN):
     """
@@ -255,6 +251,11 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
+            # Don't need to do quiescence here. If some value is stored in the
+            # table, it can't possibly have been when remaining_depth == 0,
+            # which is the only time you would even need to do quiescence
+            # (because if remaining_depth > 0, you would have recursively
+            # called alpha_beta, and that would effectively 'quiesce' for you).
             return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
@@ -264,40 +265,38 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
+            # Don't need to do quiescence here. If some value is stored in the
+            # table, it can't possibly have been when remaining_depth == 0,
+            # which is the only time you would even need to do quiescence
+            # (because if remaining_depth > 0, you would have recursively
+            # called alpha_beta, and that would effectively 'quiesce' for you).
             return score, value[MOVE_INDEX]
-
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
         num_leafs += 1
-        # if not is_piece_threatened(state, expanded_state) or \
-        # not can_king_win(state, expanded_state):
-        utility = evaluate(state, expanded_state)
         best_move = None
-        # else:
-        # utility, best_move = quiescene_search(state, expanded_state, evaluate)
+        if is_piece_threatened(state, expanded_state) or \
+                can_king_win(state, expanded_state):
+            utility = quiescence_search(state, expanded_state, evaluate)
+        else:
+            utility = evaluate(state, expanded_state)
     else:
         # Examine the stored move first. If it leads to an alpha or a beta
         # cutoff, we don't need to evaluate any of the other successors!
         utility = stored_move = best_move = None
+        is_max = player_turn(state) == KING_PLAYER
         if value is not None:
             stored_move = best_move = value[MOVE_INDEX]
-
             stored_state = copy.deepcopy(state)
-
             stored_expanded_state = \
                 create_expanded_state_representation(stored_state)
-
             move_piece(stored_state, stored_expanded_state, best_move[0],
                        best_move[1])
-
             utility = alpha_beta(stored_state, stored_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
-
-            is_max = player_turn(stored_state) == KING_PLAYER
-
             if is_max:
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_move_ordering_beta_cutoff += 1
@@ -328,9 +327,6 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta(new_state, new_expanded_state, evaluate,
                                   remaining_depth - 1, alpha, beta)[0]
-
-            is_max = player_turn(new_state) == KING_PLAYER
-
             if is_max:
                 if utility < new_util:
                     utility = new_util
@@ -364,22 +360,37 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
     return utility, best_move
 
 
+def quiescence_search(state, expanded_state, evaluate):
+    """
+    Performs quiescence search on the given state, assuming that it is known to
+    be not a "quiet" position. Searches the state a bit deeper, then returns a
+    (hopefully) better estimate of the state's utility than 'evaluate' alone
+    can do.
 
-
-def quiescene_search(state, expanded_state, evaluate):
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param evaluate: a function taking a state and an expanded state and
+        returning a heuristic estimate of the state's utility for the current
+        player
+    :type evaluate: (array of bytes, dict(byte, char)) => numeric
+    :return: a (hopefully) better estimate of the state's utility than
+        'evaluate' alone can do
+    :rtype: numeric
+    """
     utilities = []
-    for new_state, new_expanded_state, new_move in successors(state,
-                                                              expanded_state):
+    for new_state, new_expanded_state, _ in successors(state, expanded_state):
         is_term, utility = is_terminal(new_state, new_expanded_state)
         if is_term:
-            utilities.append((utility,new_move))
-        elif is_piece_threatened(new_state, new_expanded_state) or can_king_win(new_state, new_expanded_state):
-            utilities.append(quiescene_search(new_state, new_expanded_state, evaluate))
+            utilities.append(utility)
+        elif is_piece_threatened(new_state, new_expanded_state) or \
+                can_king_win(new_state, new_expanded_state):
+            utilities.append(quiescence_search(new_state, new_expanded_state,
+                                               evaluate))
         else:
-            utilities.append((evaluate(new_state, new_expanded_state), new_move))
-
-    if player_turn(state) == DRAGON_PLAYER:
-        return min(utilities, key=lambda i: i[0])
-    else:
+            utilities.append(evaluate(new_state, new_expanded_state))
+    if player_turn(state) == KING_PLAYER:
         return max(utilities, key=lambda i: i[0])
-
+    else:
+        return min(utilities, key=lambda i: i[0])
