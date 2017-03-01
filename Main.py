@@ -15,7 +15,9 @@ defaults = {
     'eval_name': 'simple',
     'search': {
         'minimax': minimax,
-        'alpha-beta': alpha_beta
+        'minimax-ordered': minimax_ordered,
+        'alpha-beta': alpha_beta,
+        'alpha-beta-ordered': alpha_beta_ordered
     },
     'search_name': 'minimax',
     'depth': DEFAULT_DEPTH_LIMIT,
@@ -337,27 +339,39 @@ if __name__ == "__main__":
     _parser.add_argument("-t", "--run-quick-test", action='store_true',
                          help="run a quick minimax/alpha-beta test instead of"
                               "playing the actual game")
+    _parser.add_argument("-o", "--move-ordering", action='store_true',
+                         help="use the move-ordered version of the successor"
+                                "function")
 
     # Parse command line arguments.
     _args = _parser.parse_args()
     _evaluate = defaults['eval'][_args.eval]
-    _search = defaults['search'][_args.algorithm]
+    _ordered = _args.move_ordering
+    search_alg = _args.algorithm
+    if _ordered:
+        search_alg += "-ordered"
+    _search = defaults['search'][search_alg]
     _depth = _args.depth
     _replacement = defaults['replace'][_args.replace]
     _table_size = _args.table_size
     _run_quick_test = _args.run_quick_test
+
 
     # Initialize the global transposition table.
     init_table(_table_size, _replacement)
 
     if _run_quick_test:  # Run a search, and print results to console and file.
         print("Running", _args.algorithm, "with a depth limit of", _depth,
-              "and a table of size", _table_size, "with policy", _args.replace)
+              "and a table of size", _table_size, "with policy", _args.replace,
+              "with move ordering ", _ordered)
         game_state = get_default_game_start()
         game_expanded_state = create_expanded_state_representation(game_state)
-        result = _search(game_state, game_expanded_state, simple_eval, _depth)
+        result = _search(game_state, game_expanded_state, simple_eval, _depth, _ordered)
+        is_ordered = ""
+        if _ordered:
+            is_ordered = ".ordered"
         filename = _args.algorithm + ".depth" + str(_depth) + ".table_size" + \
-            str(_table_size) + "." + _args.replace + ".json"
+            str(_table_size) + "." + _args.replace + is_ordered + ".json"
         dump_table(filename)
         print_utility_move_and_global_counters(result)
     else:  # Play the game.
