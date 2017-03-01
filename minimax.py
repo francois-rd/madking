@@ -167,24 +167,36 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        # Don't need to do quiescence here. If some value is stored in the
-        # table, it can't possibly have been when remaining_depth == 0, which
-        # is the only time you would even need to do quiescence (because if
-        # remaining_depth > 0, you would have recursively called minimax, and
-        # that would effectively 'quiesce' for you).
-        return value[SCORE_INDEX], value[MOVE_INDEX]
+        if not is_piece_threatened(state, expanded_state) or \
+                not can_king_win(state, expanded_state):
+            return value[SCORE_INDEX], value[MOVE_INDEX]
+            # else:
+            #     return quiescene_search(state, expanded_state, evaluate)
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
+        # MAKE SURE THIS IS CORRECT
         num_leafs += 1
-        best_move = None
-        if is_piece_threatened(state, expanded_state) or \
-                can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
-        else:
+        if not is_piece_threatened(state, expanded_state) or \
+                not can_king_win(state, expanded_state):
             utility = evaluate(state, expanded_state)
+            best_move = None
+            # else:
+            #     utility, best_move = quiescene_search(state, expanded_state, evaluate)
+
+    else:
+        vs = [(minimax(new_state, new_expanded_state, evaluate,
+                       remaining_depth - 1)[0], new_move) for
+              new_state, new_expanded_state, new_move in
+              successors(state, expanded_state)]
+        if player_turn(state) == KING_PLAYER:
+            utility, best_move = max(vs, key=lambda i: i[0])
+        else:
+            utility, best_move = min(vs, key=lambda i: i[0])
+        _table[hash_string] = (remaining_depth, utility, best_move, EXACT)
+
     return utility, best_move
 
 def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
@@ -224,7 +236,7 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
             return value[SCORE_INDEX], value[MOVE_INDEX]
         # else:
         #     return quiescene_search(state, expanded_state, evaluate)
-    is_term, utility = is_terminal(state, expanded_state)
+    is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
@@ -242,7 +254,7 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
         vs = [(minimax(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
-              successors(state, expanded_state)]
+              successors_ordered(state, expanded_state)]
         if player_turn(state) == KING_PLAYER:
             utility, best_move = max(vs, key=lambda i: i[0])
         else:
