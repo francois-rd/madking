@@ -182,7 +182,9 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            quiescence_table = {}
+            utility = quiescence_search(state, expanded_state, evaluate, quiescence_table)
+            del quiescence_table
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -244,7 +246,9 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            quiescence_table = {}
+            utility = quiescence_search_ordered(state, expanded_state, evaluate, quiescence_table)
+            del quiescence_table
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -341,7 +345,9 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            quiescence_table = {}
+            utility = quiescence_search(state, expanded_state, evaluate, quiescence_table)
+            del quiescence_table
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -500,7 +506,9 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            quiescence_table = {}
+            utility = quiescence_search_ordered(state, expanded_state, evaluate, quiescence_table)
+            del quiescence_table
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -608,3 +616,7 @@ def quiescence_search(state, expanded_state, evaluate):
         return max(utilities, key=lambda i: i[0])
     else:
         return min(utilities, key=lambda i: i[0])
+
+
+def quiescence_search_ordered(state, expanded_state, evaluate, table):
+    pass
