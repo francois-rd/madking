@@ -904,7 +904,6 @@ def is_piece_threatened(state, expanded_state):
            is_dragon_threatened(state, expanded_state) or \
            _is_king_surrounded(expanded_state, get_king_tile_index(state))
 
-<<<<<<< HEAD
 def _get_row(i):
     """
     Get the row number (1-5) for the board index 'i'
