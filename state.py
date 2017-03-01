@@ -905,10 +905,54 @@ def is_piece_threatened(state, expanded_state):
            is_dragon_threatened(state, expanded_state) or \
            _is_king_surrounded(expanded_state, get_king_tile_index(state))
 
+def _get_row(i):
+    """
+    Get the row number (1-5) for the board index 'i'
+    
+    :param i: a board index
+    :type i: int
+    :return: the row number of the board index 'i'
+    :rtype: int
+    """
+    return (i % BOARD_NUM_RANKS) + 1
+
+def _get_col(i):
+    """
+    Get the column number (1-5), corresponding to A-E for the board index 'i'
+    
+    :param i: a board index
+    :type i: int
+    :return: the column number of the board index 'i'
+    :rtype: int
+    """
+    return i // 5 
+
 def can_king_win(state, expanded_state):
+    """
+    Return a True or False if the king is in a position to win on his
+    next turn.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    """
     king_index = get_king_tile_index(state)
-    return king_index in [1, 6 ,11, 16, 21 ] and \
-           expanded_state[king_index-1] == EMPTY
+    king_row = _get_row(king_index)
+    # If the king is not in the second or third last row, 
+    # he CANNOT win...
+    if king_row > 3:
+        return False
+    # Check if the king can jump to win - he must be in the third row
+    # and his row in the second column must have a guard and his
+    # row in the first column must be empty.
+    if king_row == 3:
+        if (expanded_state[king_index-2] == EMPTY) \
+                and (expanded_state[king_index-1] == GUARD):
+            return True
+    # Check if the king is just above the row and empty column to win
+    if (king_row == 2) and (expanded_state[king_index-1] == EMPTY):
+        return True
 
 def move_piece(state, expanded_state, from_tile_idx, to_tile_idx):
     """
