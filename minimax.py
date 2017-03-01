@@ -486,13 +486,6 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         if alpha >= beta:
             num_usable_hits_pruning += 1
             return score, value[MOVE_INDEX]
-def quiescence_search(state, expanded_state, evaluate):
-    """
-    Performs quiescence search on the given state, assuming that it is known to
-    be not a "quiet" position. Searches the state a bit deeper, then returns a
-    (hopefully) better estimate of the state's utility than 'evaluate' alone
-    can do.
-
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
@@ -592,7 +585,8 @@ def quiescence_search(state, expanded_state, evaluate):
 
 
 
-def quiescene_search(state, expanded_state, evaluate):
+def quiescence_search(state, expanded_state, evaluate):
+    """
     :param state: the current node in the search
     :type state: array of bytes
     :param expanded_state: the expanded representation of the state
