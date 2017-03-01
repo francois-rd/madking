@@ -592,8 +592,7 @@ def quiescence_search(state, expanded_state, evaluate):
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
     :param evaluate: a function taking a state and an expanded state and
-        returning a heuristic estimate of the state's utility for the current
-        player
+        returning a heuristic estimate of the state's utility
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
     :return: a (hopefully) better estimate of the state's utility than
         'evaluate' alone can do

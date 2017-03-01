@@ -642,7 +642,7 @@ def _is_king_surrounded(expanded_state, king_idx):
     :type expanded_state: dict(byte, char)
     :param king_idx: the tile index (0-24) corresponding to a board position
     :type king_idx: byte
-    :return: True iff 3 dragons surround the guard at the given tile index
+    :return: True iff 3 dragons surround the king at the given tile index
     :rtype: bool
     """
     _, dragon_left, _, _ = _check_left(expanded_state, king_idx, [DRAGON])
@@ -826,7 +826,7 @@ def get_diagonal_tiles_around(tile_idx):
 
 def is_dragon_threatened(state, expanded_state):
     """
-    Returns the number of DRAGONS threatened to be captured by the king player.
+    Return true if any dragons are threatened, and false otherwise. 
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -845,13 +845,13 @@ def is_dragon_threatened(state, expanded_state):
             if content == GUARD or content == KING:
                 threats += 1
         if threats >= 2:
-            count_threatened_tiles += 1
-    return count_threatened_tiles > 0
+            return True
+    return False
 
 
 def is_guard_threatened(state, expanded_state):
     """
-    Returns the number of GUARDS threatened to be captured by the dragon player.
+    Returns true if any guards are threatened, and false otherwise.
 
     :param state: the current node in the search
     :type state: array of bytes
@@ -895,8 +895,8 @@ def is_guard_threatened(state, expanded_state):
                         if n not in used_positions and content == DRAGON:
                             threats += 1
         if threats >= 3:
-            count_threatened_tiles += 1
-    return count_threatened_tiles > 0
+            return True
+    return False
 
 
 def is_piece_threatened(state, expanded_state):
