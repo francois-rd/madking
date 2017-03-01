@@ -349,11 +349,9 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     :type king_tile_idx: int
     :return: an integer indicating the level of risk for the king
     :rtype: int
-    """
-    """
+
     surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
     surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
->>>>>>> 3be23a347ef461addf721b563b921a33762b10ad
     num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
     num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
     return num_guards - num_dragons
