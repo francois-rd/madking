@@ -634,9 +634,9 @@ def _is_guard_surrounded(expanded_state, guard_idx):
 
 def _is_king_surrounded(expanded_state, king_idx):
     """
-    Returns True iff the guard at the given tile index is surrounded by at
+    Returns True iff the king at the given tile index is surrounded by at
     least 3 dragons. *** Does NOT verify that the given tile actually contains
-    a guard, for efficiency reasons. ***
+    the king, for efficiency reasons. ***
 
     :param expanded_state: the expanded representation of the state
     :type expanded_state: dict(byte, char)
