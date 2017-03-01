@@ -167,25 +167,24 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        if not is_piece_threatened(state, expanded_state) or \
-                not can_king_win(state, expanded_state):
-            return value[SCORE_INDEX], value[MOVE_INDEX]
-            # else:
-            #     return quiescene_search(state, expanded_state, evaluate)
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0, which
+        # is the only time you would even need to do quiescence (because if
+        # remaining_depth > 0, you would have recursively called minimax, and
+        # that would effectively 'quiesce' for you).
+        return value[SCORE_INDEX], value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # MAKE SURE THIS IS CORRECT
         num_leafs += 1
-        if not is_piece_threatened(state, expanded_state) or \
-                not can_king_win(state, expanded_state):
+        best_move = None
+        if is_piece_threatened(state, expanded_state) or \
+                can_king_win(state, expanded_state):
+            utility = quiescence_search(state, expanded_state, evaluate)
+        else:
             utility = evaluate(state, expanded_state)
-            best_move = None
-            # else:
-            #     utility, best_move = quiescene_search(state, expanded_state, evaluate)
-
     else:
         vs = [(minimax(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
@@ -196,7 +195,6 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
         else:
             utility, best_move = min(vs, key=lambda i: i[0])
         _table[hash_string] = (remaining_depth, utility, best_move, EXACT)
-
     return utility, best_move
 
 def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
@@ -231,27 +229,26 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
     value = _table.get(hash_string)
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
-        if not is_piece_threatened(state, expanded_state) or \
-            not can_king_win(state, expanded_state):
-            return value[SCORE_INDEX], value[MOVE_INDEX]
-        # else:
-        #     return quiescene_search(state, expanded_state, evaluate)
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0, which
+        # is the only time you would even need to do quiescence (because if
+        # remaining_depth > 0, you would have recursively called minimax, and
+        # that would effectively 'quiesce' for you).
+        return value[SCORE_INDEX], value[MOVE_INDEX]
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
-        # MAKE SURE THIS IS CORRECT
         num_leafs += 1
-        if not is_piece_threatened(state, expanded_state) or \
-                not can_king_win(state, expanded_state):
+        best_move = None
+        if is_piece_threatened(state, expanded_state) or \
+                can_king_win(state, expanded_state):
+            utility = quiescence_search(state, expanded_state, evaluate)
+        else:
             utility = evaluate(state, expanded_state)
-            best_move = None
-        # else:
-        #     utility, best_move = quiescene_search(state, expanded_state, evaluate)
-
     else:
-        vs = [(minimax(new_state, new_expanded_state, evaluate,
+        vs = [(minimax_ordered(new_state, new_expanded_state, evaluate,
                        remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
               successors_ordered(state, expanded_state)]
@@ -260,7 +257,6 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
         else:
             utility, best_move = min(vs, key=lambda i: i[0])
         _table[hash_string] = (remaining_depth, utility, best_move, EXACT)
-
     return utility, best_move
 
 
@@ -316,26 +312,26 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-            # Don't need to do quiescence here. If some value is stored in the
-            # table, it can't possibly have been when remaining_depth == 0,
-            # which is the only time you would even need to do quiescence
-            # (because if remaining_depth > 0, you would have recursively
-            # called alpha_beta, and that would effectively 'quiesce' for you).
-            return score, value[MOVE_INDEX]
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0,
+        # which is the only time you would even need to do quiescence
+        # (because if remaining_depth > 0, you would have recursively
+        # called alpha_beta, and that would effectively 'quiesce' for you).
+        return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
-            alpha = max(alpha, score)
+        alpha = max(alpha, score)
         if flags == BETA_CUTOFF:
             num_usable_hits_beta += 1
-            beta = min(beta, score)
+        beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            # Don't need to do quiescence here. If some value is stored in the
-            # table, it can't possibly have been when remaining_depth == 0,
-            # which is the only time you would even need to do quiescence
-            # (because if remaining_depth > 0, you would have recursively
-            # called alpha_beta, and that would effectively 'quiesce' for you).
-            return score, value[MOVE_INDEX]
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0,
+        # which is the only time you would even need to do quiescence
+        # (because if remaining_depth > 0, you would have recursively
+        # called alpha_beta, and that would effectively 'quiesce' for you).
+        return score, value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -366,7 +362,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_move_ordering_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                           BETA_CUTOFF)
+                                   BETA_CUTOFF)
                     return utility, best_move
                 else:  # Might still help narrow the search window.
                     alpha = max(alpha, utility)
@@ -378,7 +374,6 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     return utility, best_move
                 else:  # Might still help narrow the search window.
                     beta = min(beta, utility)
-
         # Initialize utility and best_move either with first successor if there
         # was no stored move.
         _successors = successors(state, expanded_state).__iter__()
@@ -391,7 +386,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             if stored_move is not None and new_move == stored_move:
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta(new_state, new_expanded_state, evaluate,
-                                  remaining_depth - 1, alpha, beta)[0]
+                              remaining_depth - 1, alpha, beta)[0]
             if is_max:
                 if utility < new_util:
                     utility = new_util
@@ -399,7 +394,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                           BETA_CUTOFF)
+                                       BETA_CUTOFF)
                     return utility, best_move
                 else:
                     alpha = max(alpha, utility)
@@ -410,7 +405,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility <= alpha:  # Alpha cutoff! Stop search early.
                     num_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                           ALPHA_CUTOFF)
+                                       ALPHA_CUTOFF)
                     return utility, best_move
                 else:
                     beta = min(beta, utility)
@@ -476,48 +471,52 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-            return score, value[MOVE_INDEX]
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0,
+        # which is the only time you would even need to do quiescence
+        # (because if remaining_depth > 0, you would have recursively
+        # called alpha_beta, and that would effectively 'quiesce' for you).
+        return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
-            alpha = max(alpha, score)
+        alpha = max(alpha, score)
         if flags == BETA_CUTOFF:
             num_usable_hits_beta += 1
-            beta = min(beta, score)
+        beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            return score, value[MOVE_INDEX]
+        # Don't need to do quiescence here. If some value is stored in the
+        # table, it can't possibly have been when remaining_depth == 0,
+        # which is the only time you would even need to do quiescence
+        # (because if remaining_depth > 0, you would have recursively
+        # called alpha_beta, and that would effectively 'quiesce' for you).
+        return score, value[MOVE_INDEX]
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
         best_move = None
     elif remaining_depth == 0:
         num_leafs += 1
-        # if not is_piece_threatened(state, expanded_state) or \
-        # not can_king_win(state, expanded_state):
-        utility = evaluate(state, expanded_state)
         best_move = None
-        # else:
-        # utility, best_move = quiescene_search(state, expanded_state, evaluate)
+        if is_piece_threatened(state, expanded_state) or \
+                can_king_win(state, expanded_state):
+            utility = quiescence_search(state, expanded_state, evaluate)
+        else:
+            utility = evaluate(state, expanded_state)
     else:
         # Examine the stored move first. If it leads to an alpha or a beta
         # cutoff, we don't need to evaluate any of the other successors!
         utility = stored_move = best_move = None
+        is_max = player_turn(state) == KING_PLAYER
         if value is not None:
             stored_move = best_move = value[MOVE_INDEX]
-
             stored_state = copy.deepcopy(state)
-
             stored_expanded_state = \
                 create_expanded_state_representation(stored_state)
-
             move_piece(stored_state, stored_expanded_state, best_move[0],
                        best_move[1])
-
             utility = alpha_beta_ordered(stored_state, stored_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
-
-            is_max = player_turn(stored_state) == KING_PLAYER
-
             if is_max:
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_move_ordering_beta_cutoff += 1
@@ -534,7 +533,6 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                     return utility, best_move
                 else:  # Might still help narrow the search window.
                     beta = min(beta, utility)
-
         # Initialize utility and best_move either with first successor if there
         # was no stored move.
         _successors = successors_ordered(state, expanded_state).__iter__()
@@ -548,9 +546,6 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta_ordered(new_state, new_expanded_state, evaluate,
                                   remaining_depth - 1, alpha, beta)[0]
-
-            is_max = player_turn(new_state) == KING_PLAYER
-
             if is_max:
                 if utility < new_util:
                     utility = new_util
