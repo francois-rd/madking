@@ -580,7 +580,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
 
 
 
-def quiescence_search(state, expanded_state, evaluate):
+def quiescence_search(state, expanded_state, evaluate, table):
     """
     :param state: the current node in the search
     :type state: array of bytes
@@ -589,15 +589,25 @@ def quiescence_search(state, expanded_state, evaluate):
     :param evaluate: a function taking a state and an expanded state and
         returning a heuristic estimate of the state's utility
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
+    :param table: A table to keep track of recurring states and avoid
+        infinite recursion - hashing the utility of the state on the 
+        hashed state.
+    :type table: dict(hashed_state, int)
     :return: a (hopefully) better estimate of the state's utility than
         'evaluate' alone can do
     :rtype: numeric
     """
     utilities = []
     for new_state, new_expanded_state, _ in successors(state, expanded_state):
+        # If the hashed new state is already in our table, just return that
+        # utility.  Don't chase the dragon.
+        hashed = hash_state(new_state)
+        if hashed in table:
+            return table[hashed]
         is_term, utility = is_terminal(new_state, new_expanded_state)
+        table[hashed] = utility
         if is_term:
-            utilities.append(utility)
+            utilities.append(utility) 
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utilities.append(quiescence_search(new_state, new_expanded_state,
