@@ -15,9 +15,11 @@ defaults = {
     'eval_name': 'split',
     'search': {
         'minimax': minimax,
-        'minimax-ordered': minimax_ordered,
-        'alpha-beta': alpha_beta,
-        'alpha-beta-ordered': alpha_beta_ordered
+        'alpha-beta': alpha_beta
+    },
+    'ordered-search': {
+        'minimax': minimax_ordered,
+        'alpha-beta': alpha_beta_ordered
     },
     'search_name': 'minimax',
     'depth': DEFAULT_DEPTH_LIMIT,
@@ -341,21 +343,21 @@ if __name__ == "__main__":
                               "playing the actual game")
     _parser.add_argument("-o", "--move-ordering", action='store_true',
                          help="use the move-ordered version of the successor"
-                                "function")
+                              "function")
 
     # Parse command line arguments.
     _args = _parser.parse_args()
     _evaluate = defaults['eval'][_args.eval]
     _ordered = _args.move_ordering
     search_alg = _args.algorithm
-    if _ordered:
-        search_alg += "-ordered"
-    _search = defaults['search'][search_alg]
+    if _args.move_ordering:
+        _search = defaults['ordered-search'][search_alg]
+    else:
+        _search = defaults['search'][search_alg]
     _depth = _args.depth
     _replacement = defaults['replace'][_args.replace]
     _table_size = _args.table_size
     _run_quick_test = _args.run_quick_test
-
 
     # Initialize the global transposition table.
     init_table(_table_size, _replacement)
@@ -363,10 +365,10 @@ if __name__ == "__main__":
     if _run_quick_test:  # Run a search, and print results to console and file.
         print("Running", _args.algorithm, "with a depth limit of", _depth,
               "and a table of size", _table_size, "with policy", _args.replace,
-              "with move ordering ", _ordered)
+              "with move ordering", _ordered)
         game_state = get_default_game_start()
         game_expanded_state = create_expanded_state_representation(game_state)
-        result = _search(game_state, game_expanded_state, simple_eval, _depth, _ordered)
+        result = _search(game_state, game_expanded_state, simple_eval, _depth)
         is_ordered = ""
         if _ordered:
             is_ordered = ".ordered"
