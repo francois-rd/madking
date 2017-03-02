@@ -303,7 +303,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-            return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]  # Is fail-hard because of EXACT.
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
         alpha = max(alpha, score)
@@ -312,7 +312,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -344,7 +344,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     num_move_ordering_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
-                    return utility, best_move
+                    return beta, best_move  # Return fail-hard 'beta' value.
                 else:  # Might still help narrow the search window.
                     alpha = max(alpha, utility)
             else:  # Is min.
@@ -352,7 +352,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     num_move_ordering_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
-                    return utility, best_move
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
                 else:  # Might still help narrow the search window.
                     beta = min(beta, utility)
         # Initialize utility and best_move either with first successor if there
@@ -376,7 +376,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     num_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
-                    return utility, best_move
+                    return beta, best_move  # Return fail-hard 'beta' value.
                 else:
                     alpha = max(alpha, utility)
             else:  # Is min.
@@ -387,7 +387,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                     num_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
-                    return utility, best_move
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
                 else:
                     beta = min(beta, utility)
         # No earlier alpha or beta cutoff was possible. Check one last time.
@@ -398,7 +398,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         else:
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
-    return utility, best_move
+    return utility, best_move  # TODO: fail-hard or fail-soft here?
 
 
 def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
@@ -453,7 +453,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-            return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]  # Is fail-hard because of EXACT.
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
         alpha = max(alpha, score)
@@ -462,7 +462,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
@@ -495,7 +495,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                     num_move_ordering_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
-                    return utility, best_move
+                    return beta, best_move  # Return fail-hard 'beta' value.
                 else:  # Might still help narrow the search window.
                     alpha = max(alpha, utility)
             else:  # Is min.
@@ -503,7 +503,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                     num_move_ordering_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
-                    return utility, best_move
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
                 else:  # Might still help narrow the search window.
                     beta = min(beta, utility)
         # Initialize utility and best_move either with first successor if there
@@ -529,7 +529,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                     num_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            BETA_CUTOFF)
-                    return utility, best_move
+                    return beta, best_move  # Return fail-hard 'beta' value.
                 else:
                     alpha = max(alpha, utility)
             else:  # Is min.
@@ -540,7 +540,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                     num_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
                                            ALPHA_CUTOFF)
-                    return utility, best_move
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
                 else:
                     beta = min(beta, utility)
         # No earlier alpha or beta cutoff was possible. Check one last time.
@@ -551,7 +551,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         else:
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
-    return utility, best_move
+    return utility, best_move  # TODO: fail-hard or fail-soft here?
 
 
 def quiescence_search(state, expanded_state, evaluate):
