@@ -1670,6 +1670,80 @@ def successors(state, expanded_state):
     return all_successors
 
 
+def all_capture_moves(state, expanded_state):
+    """
+    Returns a list of (<from-tile-index>, <to-tile-index>) pairs representing
+    all the capture moves that every piece that is alive can make in the given
+    state, depending on which player's turn it is.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: a list of (<from-tile-index>, <to-tile-index>) pairs representing
+        all the valid moves that every piece that is alive can make in the
+        given state, depending on which player's turn it is
+    :rtype: list((byte, byte))
+    """
+    import ui
+    all_moves = []
+    if is_winning_state(state):  # Check if result has already been computed.
+        return all_moves
+    king_tile_idx = get_king_tile_index(state)
+    king_is_captured, king_player_turn = \
+        _is_king_captured(state, expanded_state, king_tile_idx)
+    if king_is_captured:  # No forced moves. Doesn't matter the player's turn.
+        # Set the terminal state bits, for efficiency.
+        _mark_as_winning_state(state)
+        _set_winner(state, DRAGON_PLAYER)
+        return all_moves
+    if king_player_turn:
+        # There are no forced moves, so get all other valid moves.
+
+        # We get dicts back now with capture, threat, progress, other
+        king_moves = _all_valid_non_forced_moves_for_king_ordered(state, expanded_state,
+                                                                  king_tile_idx)
+        guard_moves = []
+        for _, idx in get_live_guards_enumeration(state):
+            guard_moves.append(_all_valid_moves_for_guard_ordered(state, expanded_state, idx))
+        # order moves as progress, capture, threat, other
+        all_moves.extend(king_moves['capture'])
+        for guard in guard_moves:
+            all_moves.extend(guard['capture'])
+    else:  # It's DRAGON_PLAYER's turn
+        dragon_moves = []
+        for _, idx in get_live_dragon_enumeration(state):
+            dragon_moves.append(_all_valid_moves_for_dragon_ordered(state, expanded_state, idx - DRAGON_BASE))
+        for dragon in dragon_moves:
+            all_moves.extend(dragon['capture'])
+
+    return all_moves
+
+
+def successors_capture_only(state, expanded_state):
+    """
+    Returns a list of (<successor-state>, <successor-expanded-state>, <move>)
+    tuples, one tuple for each successor of the given state, where 'move' is
+    itself a (<from-tile-index>, <to-tile-index>) pair.
+
+    :param state: a compact state representation
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :return: a list of (<successor-state>, <successor-expanded-state>, <move>)
+        tuples, one tuple for each successor of the given state
+    :rtype: list((array of bytes, dict(byte, char), (byte, byte)))
+    """
+    all_successors = []
+    for from_tile_idx, to_tile_idx in all_capture_moves(state, expanded_state):
+        new_state = copy.deepcopy(state)
+        new_expanded_state = create_expanded_state_representation(new_state)
+        move_piece(new_state, new_expanded_state, from_tile_idx, to_tile_idx)
+        all_successors.append((new_state, new_expanded_state,
+                               (from_tile_idx, to_tile_idx)))
+    return all_successors
+
+
 def hash_state(state):
     """
     Returns a hash string of the given state.
