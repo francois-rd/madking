@@ -302,7 +302,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-        return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
         alpha = max(alpha, score)
@@ -311,7 +311,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-        return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -451,7 +451,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         score = value[SCORE_INDEX]
         if flags == EXACT:
             num_usable_hits_exact += 1
-        return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
         alpha = max(alpha, score)
@@ -460,7 +460,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-        return score, value[MOVE_INDEX]
+            return score, value[MOVE_INDEX]
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
