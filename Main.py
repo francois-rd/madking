@@ -12,7 +12,7 @@ defaults = {
         'simple': simple_eval,
         'split': split_weight_eval
     },
-    'eval_name': 'simple',
+    'eval_name': 'split',
     'search': {
         'minimax': minimax,
         'minimax-ordered': minimax_ordered,
