@@ -43,6 +43,7 @@ def get_pos(tile_idx):
     """
     return abs(tile_idx % BOARD_NUM_RANKS - 4), tile_idx // BOARD_NUM_RANKS
 
+
 def draw_board_plain(state):
     """
     Draws the board from the given state representation to standard output.

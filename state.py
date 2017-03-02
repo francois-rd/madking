@@ -1302,7 +1302,6 @@ def all_valid_moves_ordered(state, expanded_state):
         given state, depending on which player's turn it is
     :rtype: list((byte, byte))
     """
-    import ui
     all_moves = []
     if is_winning_state(state):  # Check if result has already been computed.
         return all_moves
@@ -1682,7 +1681,6 @@ def all_capture_moves(state, expanded_state):
         given state, depending on which player's turn it is
     :rtype: list((byte, byte))
     """
-    import ui
     all_moves = []
     if is_winning_state(state):  # Check if result has already been computed.
         return all_moves
