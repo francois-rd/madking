@@ -91,15 +91,15 @@ def get_king_features(state, expanded_state):
     :return: an estimated utility value for the king player of the given state
     :rtype: numeric
     """
-    w_control = 100 
-    w_guard_alive = 2000
+    w_board_control = 500 
+    w_guard_alive = 20000
     w_king_progress = 10
-    w_king_controlled_tiles = 1000
+    w_king_controlled_tiles = 500
     w_dragon_threatened = 750
     w_king_risk_level = -10  # Negative because this is bad for the king player.
-    w_guard_threatened = -3  # Negative because this is bad for the king player.
+    w_guard_threatened = -100  # Negative because this is bad for the king player.
     king_pos = get_king_tile_index(state)
-    return (  w_control * get_board_control_king(state) 
+    return (  w_board_control * get_board_control_king(state) 
             + w_guard_alive * len(get_live_guards_enumeration(state))
             + (w_king_progress * get_king_progress(king_pos))
             + (w_king_controlled_tiles *
@@ -134,13 +134,12 @@ def get_dragon_features(state, expanded_state):
     :rtype: numeric
     
     """
-    w_board_control = 50
-    w_dragon_alive = 1800
+    w_board_control = 1000
+    w_dragon_alive = 18000
     w_dragon_controlled_tiles = 25
-    w_dragon_threatened = -9  # Neg., because this is bad for the dragon player.
-    w_king_risk_level = 10
-    w_guard_threatened = 1200
-    #w_king_progress = -10  # Neg., because this is bad for the dragon player.
+    w_dragon_threatened = -5000  # Neg., because this is bad for the dragon player.
+    w_king_risk_level = 100
+    w_guard_threatened = 12000
     king_pos = get_king_tile_index(state)
     return    (w_dragon_alive * 
                 len(get_live_dragon_enumeration(state))
