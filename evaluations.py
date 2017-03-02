@@ -199,8 +199,8 @@ def get_king_progress(king_tile_idx):
     """
     Returns a value that is representative of the King's progress towards the
     first rank of the board (i.e. towards winning the game for the king
-    player). This is an integer between 0 and 4 (inclusive), which should be
-    scaled for an accurate measurement.
+    player). This is an integer between 0 and 4 (inclusive), which is then
+    multiplied by 6. This should be scaled further for an accurate measurement.
     
     :param king_tile_idx: tile index (0-24) corresponding to the board
         position with the king
@@ -351,12 +351,6 @@ def get_king_risk_level(state, expanded_state, king_tile_idx):
     :type king_tile_idx: int
     :return: an integer indicating the level of risk for the king
     :rtype: int
-
-    surrounding_tiles = get_orthogonal_tiles_around(king_tile_idx)
-    surrounding_tiles.extend(get_diagonal_tiles_around(king_tile_idx))
-    num_dragons = sum(expanded_state[i] == DRAGON for i in surrounding_tiles)
-    num_guards = sum(expanded_state[i] == GUARD for i in surrounding_tiles)
-    return num_guards - num_dragons
     """
     # Currently, king_risk_level is calculated by the number of possible moves
     # that KING can make. If the KING is surrounded by DRAGONS, he will have
