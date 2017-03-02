@@ -860,7 +860,6 @@ def is_guard_threatened(state, expanded_state):
     :return: if any of the guards is captured
     :rtype: bool
     """
-    # TODO Double-check this function for correctness.
     count_threatened_tiles = 0
     guard_positions = get_live_guards_enumeration(state)
     for _, guard in guard_positions:

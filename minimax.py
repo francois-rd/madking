@@ -550,7 +550,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
 
 
 
-def quiescence_search(state, expanded_state, evaluate, table):
+def quiescence_search(state, expanded_state, evaluate):
     """
     :param state: the current node in the search
     :type state: array of bytes
@@ -559,10 +559,6 @@ def quiescence_search(state, expanded_state, evaluate, table):
     :param evaluate: a function taking a state and an expanded state and
         returning a heuristic estimate of the state's utility
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param table: A table to keep track of recurring states and avoid
-        infinite recursion - hashing the utility of the state on the 
-        hashed state.
-    :type table: dict(hashed_state, int)
     :return: a (hopefully) better estimate of the state's utility than
         'evaluate' alone can do
     :rtype: numeric
@@ -575,7 +571,7 @@ def quiescence_search(state, expanded_state, evaluate, table):
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utility = quiescence_search(new_state, new_expanded_state,
-                                               evaluate, table)
+                                               evaluate)
             utilities.append(utility)
         else:
             utility = evaluate(new_state, new_expanded_state)
@@ -589,7 +585,7 @@ def quiescence_search(state, expanded_state, evaluate, table):
         return min(utilities)
 
 
-def quiescence_search_ordered(state, expanded_state, evaluate, table):
+def quiescence_search_ordered(state, expanded_state, evaluate):
     """
     :param state: the current node in the search
     :type state: array of bytes
@@ -598,10 +594,6 @@ def quiescence_search_ordered(state, expanded_state, evaluate, table):
     :param evaluate: a function taking a state and an expanded state and
         returning a heuristic estimate of the state's utility
     :type evaluate: (array of bytes, dict(byte, char)) => numeric
-    :param table: A table to keep track of recurring states and avoid
-        infinite recursion - hashing the utility of the state on the 
-        hashed state.
-    :type table: dict(hashed_state, int)
     :return: a (hopefully) better estimate of the state's utility than
         'evaluate' alone can do
     :rtype: numeric
@@ -614,7 +606,7 @@ def quiescence_search_ordered(state, expanded_state, evaluate, table):
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utility = quiescence_search_ordered(new_state, new_expanded_state,
-                                               evaluate, table)
+                                               evaluate)
             utilities.append(utility)
         else:
             utility = evaluate(new_state, new_expanded_state)
