@@ -192,6 +192,7 @@ def minimax(state, expanded_state, evaluate, remaining_depth):
         _table[hash_string] = (remaining_depth, utility, best_move, EXACT)
     return utility, best_move
 
+
 def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
     """
     Performs minimax search, returning a (<utility>, <move>) pair, where
@@ -239,7 +240,7 @@ def minimax_ordered(state, expanded_state, evaluate, remaining_depth):
             utility = evaluate(state, expanded_state)
     else:
         vs = [(minimax_ordered(new_state, new_expanded_state, evaluate,
-                       remaining_depth - 1)[0], new_move) for
+                               remaining_depth - 1)[0], new_move) for
               new_state, new_expanded_state, new_move in
               successors_ordered(state, expanded_state)]
         if player_turn(state) == KING_PLAYER:
@@ -342,7 +343,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_move_ordering_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                   BETA_CUTOFF)
+                                           BETA_CUTOFF)
                     return utility, best_move
                 else:  # Might still help narrow the search window.
                     alpha = max(alpha, utility)
@@ -366,7 +367,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             if stored_move is not None and new_move == stored_move:
                 continue  # Skip the stored move, if there was one.
             new_util = alpha_beta(new_state, new_expanded_state, evaluate,
-                              remaining_depth - 1, alpha, beta)[0]
+                                  remaining_depth - 1, alpha, beta)[0]
             if is_max:
                 if utility < new_util:
                     utility = new_util
@@ -374,7 +375,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_beta_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                       BETA_CUTOFF)
+                                           BETA_CUTOFF)
                     return utility, best_move
                 else:
                     alpha = max(alpha, utility)
@@ -385,7 +386,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
                 if utility <= alpha:  # Alpha cutoff! Stop search early.
                     num_alpha_cutoff += 1
                     _table[hash_string] = (remaining_depth, utility, best_move,
-                                       ALPHA_CUTOFF)
+                                           ALPHA_CUTOFF)
                     return utility, best_move
                 else:
                     beta = min(beta, utility)
@@ -399,8 +400,9 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
     return utility, best_move
 
+
 def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
-               alpha=DRAGON_WIN, beta=KING_WIN):
+                       alpha=DRAGON_WIN, beta=KING_WIN):
     """
     Performs minimax search with alpha beta pruning, returning a
     (<utility>, <move>) pair, where <utility> is the utility of <move>, and
@@ -485,8 +487,9 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
                 create_expanded_state_representation(stored_state)
             move_piece(stored_state, stored_expanded_state, best_move[0],
                        best_move[1])
-            utility = alpha_beta_ordered(stored_state, stored_expanded_state, evaluate,
-                                 remaining_depth - 1, alpha, beta)[0]
+            utility = alpha_beta_ordered(stored_state, stored_expanded_state,
+                                         evaluate, remaining_depth - 1, alpha,
+                                         beta)[0]
             if is_max:
                 if utility >= beta:  # Beta cutoff! Stop search early.
                     num_move_ordering_beta_cutoff += 1
@@ -508,14 +511,16 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         _successors = successors_ordered(state, expanded_state).__iter__()
         if stored_move is None:
             first_state, first_expanded_state, best_move = next(_successors)
-            utility = alpha_beta_ordered(first_state, first_expanded_state, evaluate,
-                                 remaining_depth - 1, alpha, beta)[0]
+            utility = alpha_beta_ordered(first_state, first_expanded_state,
+                                         evaluate, remaining_depth - 1, alpha,
+                                         beta)[0]
         # Go through the remaining successors to find the true best.
         for new_state, new_expanded_state, new_move in _successors:
             if stored_move is not None and new_move == stored_move:
                 continue  # Skip the stored move, if there was one.
-            new_util = alpha_beta_ordered(new_state, new_expanded_state, evaluate,
-                                  remaining_depth - 1, alpha, beta)[0]
+            new_util = alpha_beta_ordered(new_state, new_expanded_state,
+                                          evaluate, remaining_depth - 1, alpha,
+                                          beta)[0]
             if is_max:
                 if utility < new_util:
                     utility = new_util
@@ -549,7 +554,6 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
     return utility, best_move
 
 
-
 def quiescence_search(state, expanded_state, evaluate):
     """
     :param state: the current node in the search
@@ -564,14 +568,15 @@ def quiescence_search(state, expanded_state, evaluate):
     :rtype: numeric
     """
     utilities = []
-    for new_state, new_expanded_state, _ in successors_capture_only(state, expanded_state):
+    for new_state, new_expanded_state, _ in \
+            successors_capture_only(state, expanded_state):  # TODO: bug! This is an ORDERED successor function!
         is_term, utility = is_terminal(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility) 
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utility = quiescence_search(new_state, new_expanded_state,
-                                               evaluate)
+                                        evaluate)
             utilities.append(utility)
         else:
             utility = evaluate(new_state, new_expanded_state)
@@ -599,14 +604,15 @@ def quiescence_search_ordered(state, expanded_state, evaluate):
     :rtype: numeric
     """
     utilities = []
-    for new_state, new_expanded_state, _ in successors_capture_only(state, expanded_state):
+    for new_state, new_expanded_state, _ in \
+            successors_capture_only(state, expanded_state):
         is_term, utility = is_terminal_ordered(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility)
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utility = quiescence_search_ordered(new_state, new_expanded_state,
-                                               evaluate)
+                                                evaluate)
             utilities.append(utility)
         else:
             utility = evaluate(new_state, new_expanded_state)
