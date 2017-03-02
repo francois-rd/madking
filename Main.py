@@ -21,7 +21,7 @@ defaults = {
         'minimax': minimax_ordered,
         'alpha-beta': alpha_beta_ordered
     },
-    'search_name': 'minimax',
+    'search_name': 'alpha-beta',
     'depth': DEFAULT_DEPTH_LIMIT,
     'replace': {
         'overall-oldest': TranspositionTable.replace_overall_oldest,
