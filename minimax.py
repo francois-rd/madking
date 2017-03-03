@@ -363,6 +363,22 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             first_state, first_expanded_state, best_move = next(_successors)
             utility = alpha_beta(first_state, first_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
+            if is_max:
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_beta_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           BETA_CUTOFF)
+                    return beta, best_move  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_alpha_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           ALPHA_CUTOFF)
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
         # Go through the remaining successors to find the true best.
         for new_state, new_expanded_state, new_move in _successors:
             if stored_move is not None and new_move == stored_move:
@@ -517,6 +533,22 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
             utility = alpha_beta_ordered(first_state, first_expanded_state,
                                          evaluate, remaining_depth - 1, alpha,
                                          beta)[0]
+            if is_max:
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_beta_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           BETA_CUTOFF)
+                    return beta, best_move  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_alpha_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           ALPHA_CUTOFF)
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
         # Go through the remaining successors to find the true best.
         for new_state, new_expanded_state, new_move in _successors:
             if stored_move is not None and new_move == stored_move:
