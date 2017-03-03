@@ -1546,7 +1546,7 @@ def all_valid_moves(state, expanded_state):
     return all_moves
 
 
-def is_terminal(state, expanded_state):
+def is_terminal(state, expanded_state, three_fold_check_dict = {}):
     """
     Returns a pair (<is-terminal>, <utility>). If it's a draw, then
     returns (True, DRAW). If it's a win for the king player, then returns
@@ -1559,6 +1559,18 @@ def is_terminal(state, expanded_state):
     :return: a pair (<is-terminal>, <utility>)
     :rtype: (bool, int)
     """
+
+
+    hash_s = hash_state(state)
+    if hash_s not in three_fold_check_dict:
+        three_fold_check_dict[hash_s] = 1
+    else:
+        three_fold_check_dict[hash_s] += 1
+        if three_fold_check_dict[hash_s] == 3:
+            return True, DRAW
+
+
+
     if is_winning_state(state):  # Check if result has already been computed.
         if who_won(state) == KING_PLAYER:
             return True, KING_WIN

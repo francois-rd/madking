@@ -297,6 +297,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
     global num_beta_cutoff
     hash_string = hash_state(state)
     value = _table.get(hash_string)
+    three_fold_check_dict = {}
     if value is not None and value[DEPTH_INDEX] >= remaining_depth:
         num_usable_hits += 1
         flags = value[FLAGS_INDEX]
@@ -313,7 +314,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         if alpha >= beta:
             num_usable_hits_pruning += 1
             return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
-    is_term, utility = is_terminal(state, expanded_state)
+    is_term, utility = is_terminal(state, expanded_state, three_fold_check_dict )
     if is_term:
         num_term += 1
         best_move = None
@@ -322,7 +323,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            utility = quiescence_search(state, expanded_state, evaluate, three_fold_check_dict )
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -554,7 +555,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
     return utility, best_move  # TODO: fail-hard or fail-soft here?
 
 
-def quiescence_search(state, expanded_state, evaluate):
+def quiescence_search(state, expanded_state, evaluate, three_fold_check_dict={} ):
     """
     :param state: the current node in the search
     :type state: array of bytes
@@ -570,13 +571,13 @@ def quiescence_search(state, expanded_state, evaluate):
     utilities = []
     for new_state, new_expanded_state, _ in \
             successors_capture_only(state, expanded_state):  # TODO: bug! This is an ORDERED successor function!
-        is_term, utility = is_terminal(new_state, new_expanded_state)
+        is_term, utility = is_terminal(new_state, new_expanded_state, three_fold_check_dict)
         if is_term:
             utilities.append(utility) 
         elif is_piece_threatened(new_state, new_expanded_state) or \
                 can_king_win(new_state, new_expanded_state):
             utility = quiescence_search(new_state, new_expanded_state,
-                                        evaluate)
+                                        evaluate, three_fold_check_dict)
             utilities.append(utility)
         else:
             utility = evaluate(new_state, new_expanded_state)
