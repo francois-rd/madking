@@ -322,7 +322,8 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search(state, expanded_state, evaluate)
+            utility = quiescence_search_alpha_beta(state, expanded_state,
+                                                   evaluate, alpha, beta)
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -362,6 +363,22 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             first_state, first_expanded_state, best_move = next(_successors)
             utility = alpha_beta(first_state, first_expanded_state, evaluate,
                                  remaining_depth - 1, alpha, beta)[0]
+            if is_max:
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_beta_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           BETA_CUTOFF)
+                    return beta, best_move  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_alpha_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           ALPHA_CUTOFF)
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
         # Go through the remaining successors to find the true best.
         for new_state, new_expanded_state, new_move in _successors:
             if stored_move is not None and new_move == stored_move:
@@ -472,7 +489,9 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         best_move = None
         if is_piece_threatened(state, expanded_state) or \
                 can_king_win(state, expanded_state):
-            utility = quiescence_search_ordered(state, expanded_state, evaluate)
+            utility = \
+                quiescence_search_alpha_beta_ordered(state, expanded_state,
+                                                     evaluate, alpha, beta)
         else:
             utility = evaluate(state, expanded_state)
     else:
@@ -514,6 +533,22 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
             utility = alpha_beta_ordered(first_state, first_expanded_state,
                                          evaluate, remaining_depth - 1, alpha,
                                          beta)[0]
+            if is_max:
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    num_beta_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           BETA_CUTOFF)
+                    return beta, best_move  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    num_alpha_cutoff += 1
+                    _table[hash_string] = (remaining_depth, utility, best_move,
+                                           ALPHA_CUTOFF)
+                    return alpha, best_move  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
         # Go through the remaining successors to find the true best.
         for new_state, new_expanded_state, new_move in _successors:
             if stored_move is not None and new_move == stored_move:
@@ -569,7 +604,7 @@ def quiescence_search(state, expanded_state, evaluate):
     """
     utilities = []
     for new_state, new_expanded_state, _ in \
-            successors_capture_only(state, expanded_state):  # TODO: bug! This is an ORDERED successor function!
+            successors_capture_only(state, expanded_state):
         is_term, utility = is_terminal(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility) 
@@ -605,7 +640,7 @@ def quiescence_search_ordered(state, expanded_state, evaluate):
     """
     utilities = []
     for new_state, new_expanded_state, _ in \
-            successors_capture_only(state, expanded_state):
+            successors_capture_only_ordered(state, expanded_state):
         is_term, utility = is_terminal_ordered(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility)
@@ -624,3 +659,165 @@ def quiescence_search_ordered(state, expanded_state, evaluate):
         return max(utilities)
     else:
         return min(utilities)
+
+
+def quiescence_search_alpha_beta(state, expanded_state, evaluate, alpha, beta):
+    """
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param evaluate: a function taking a state and an expanded state and
+        returning a heuristic estimate of the state's utility
+    :type evaluate: (array of bytes, dict(byte, char)) => numeric
+    :param alpha: the utility of the best (i.e. highest-utility) move found so
+        far for the king player
+    :type: alpha numeric
+    :param beta: the utility of the best (i.e. lowest-utility) move found so
+        far for the dragon player
+    :type: beta numeric
+    :return: a (hopefully) better estimate of the state's utility than
+        'evaluate' alone can do
+    :rtype: numeric
+    """
+    import sys
+    is_max = player_turn(state) == KING_PLAYER
+    _successors = successors_capture_only(state, expanded_state)
+    utility = -sys.maxsize if is_max else sys.maxsize
+    for new_state, new_expanded_state, _ in _successors:
+        is_term, new_util = is_terminal(new_state, new_expanded_state)
+        if is_term:
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+        elif is_piece_threatened(new_state, new_expanded_state) or \
+                can_king_win(new_state, new_expanded_state):
+            utility = quiescence_search_alpha_beta(new_state,
+                                                   new_expanded_state,
+                                                   evaluate, alpha, beta)
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+        else:
+            utility = evaluate(new_state, new_expanded_state)
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+    if len(_successors) == 0:
+        return evaluate(state, expanded_state)
+    return utility
+
+
+def quiescence_search_alpha_beta_ordered(state, expanded_state, evaluate,
+                                         alpha, beta):
+    """
+    :param state: the current node in the search
+    :type state: array of bytes
+    :param expanded_state: the expanded representation of the state
+    :type expanded_state: dict(byte, char)
+    :param evaluate: a function taking a state and an expanded state and
+        returning a heuristic estimate of the state's utility
+    :type evaluate: (array of bytes, dict(byte, char)) => numeric
+    :param alpha: the utility of the best (i.e. highest-utility) move found so
+        far for the king player
+    :type: alpha numeric
+    :param beta: the utility of the best (i.e. lowest-utility) move found so
+        far for the dragon player
+    :type: beta numeric
+    :return: a (hopefully) better estimate of the state's utility than
+        'evaluate' alone can do
+    :rtype: numeric
+    """
+    import sys
+    is_max = player_turn(state) == KING_PLAYER
+    _successors = successors_capture_only_ordered(state, expanded_state)
+    utility = -sys.maxsize if is_max else sys.maxsize
+    for new_state, new_expanded_state, _ in _successors:
+        is_term, new_util = is_terminal_ordered(new_state, new_expanded_state)
+        if is_term:
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+        elif is_piece_threatened(new_state, new_expanded_state) or \
+                can_king_win(new_state, new_expanded_state):
+            utility = \
+                quiescence_search_alpha_beta_ordered(new_state,
+                                                     new_expanded_state,
+                                                     evaluate, alpha, beta)
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+        else:
+            utility = evaluate(new_state, new_expanded_state)
+            if is_max:
+                if utility < new_util:
+                    utility = new_util
+                if utility >= beta:  # Beta cutoff! Stop search early.
+                    return beta  # Return fail-hard 'beta' value.
+                else:
+                    alpha = max(alpha, utility)
+            else:  # Is min.
+                if utility > new_util:
+                    utility = new_util
+                if utility <= alpha:  # Alpha cutoff! Stop search early.
+                    return alpha  # Return fail-hard 'alpha' value.
+                else:
+                    beta = min(beta, utility)
+    if len(_successors) == 0:
+        return evaluate(state, expanded_state)
+    return utility
