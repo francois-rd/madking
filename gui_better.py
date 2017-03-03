@@ -2,12 +2,14 @@ try:
     import simplegui
 except ImportError:
     import SimpleGUICS2Pygame.simpleguics2pygame as simplegui
+
     simplegui.Frame._hide_status = True
     simplegui.Frame._keep_timers = False
 
-import math
 from state import *
-import Main as m
+import Main
+import math
+
 game_gui = None
 piece_color = {
     GUARD: '#FF5733',
@@ -21,37 +23,34 @@ player_turn_gui = {
 }
 
 
-def point_to_rec_coords(v, rect_size=100):
-    def to_tuple(v, x=0, y=0):
+def point_to_rec_coordinates(v, rect_size=100):
+    def to_tuple(vector, x=0, y=0):
         """
         Return the vector as a tuple.
 
         :return: (int or float, int or float)
         """
-        return (v[0]+x, v[1]+y)
+        return vector[0] + x, vector[1] + y
 
-    l = []
-    l.append(to_tuple(v, 0,rect_size))
-    l.append(to_tuple(v))
-    l.append(to_tuple(v, rect_size))
-    l.append(to_tuple(v, rect_size, rect_size))
-    return l
+    return [to_tuple(v, 0, rect_size), to_tuple(v), to_tuple(v, rect_size),
+            to_tuple(v, rect_size, rect_size)]
 
 
 def get_rect_from_coordinates(x, y):
-    xRect = math.floor(x/100)
-    yRect = math.floor(y/100)
-    return xRect*5 + (4-yRect)
+    x_rect = math.floor(x / 100)
+    y_rect = math.floor(y / 100)
+    return x_rect * 5 + (4 - y_rect)
 
 
 def number_to_coordinate(n):
-    return (n//5)*100, ((4-n)%5)*100
+    return (n // 5) * 100, ((4 - n) % 5) * 100
 
 
 class Vector:
     """
     Vector (self.x, self.y).
     """
+
     def __init__(self, x, y):
         """
         Initialize the vector.
@@ -88,30 +87,24 @@ class Vector:
         self.y -= other.y
 
     def magnitude(self):
-        return math.sqrt(self.x * self.x + self.y * self.y )
-
+        return math.sqrt(self.x * self.x + self.y * self.y)
 
     def div(self, n):
-        self.x = self.x/n
-        self.y = self.y/n
-
-
+        self.x = self.x / n
+        self.y = self.y / n
 
     def normalize(self):
         m = self.magnitude()
         if m != 0 and m != 1:
             self.div(m)
 
-    def limit(self, max):
-        if self.magSq() > max*max:
+    def limit(self, maximum):
+        if self.mag_sq() > maximum * maximum:
             self.normalize()
-            self.mul_scalar(max)
+            self.mul_scalar(maximum)
 
-
-    def magSq(self):
-        return (self.x * self.x + self.y * self.y)
-
-
+    def mag_sq(self):
+        return self.x * self.x + self.y * self.y
 
     def mul_scalar(self, scalar):
         """
@@ -134,7 +127,7 @@ class Vector:
         """
         assert isinstance(other, Vector)
 
-        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
     def same(self, other):
         """
@@ -154,14 +147,15 @@ class Vector:
 
         :return: (int or float, int or float)
         """
-        return (self.x+x, self.y+y)
+        return self.x + x, self.y + y
 
     def to_coordinates(self, rect_size=100):
-        return point_to_rec_coords(self.to_tuple(), rect_size)
+        return point_to_rec_coordinates(self.to_tuple(), rect_size)
 
 
-class Game_GUI:
-    def __init__(self, evaluate, search, max_depth, player1_human, player2_human):
+class GameGUI:
+    def __init__(self, evaluate, search, max_depth, player1_human,
+                 player2_human):
         global game_gui, player_turn_gui
         self.moves = []
         self.pieces = {}
@@ -182,13 +176,14 @@ class Game_GUI:
         self.frame = simplegui.create_frame('Madking', 500, 500)
         self.ut_label = self.frame.add_label("Utility: " + str(self.utility))
         self.time_label = self.frame.add_label("Time: " + str(self.time))
+
         def pause_handle():
             self.paused = not self.paused
+
         self.frame.add_button("pause", pause_handle)
         self.frame.set_draw_handler(draw)
         self.frame.set_mouseclick_handler(mouse_pressed)
         self.frame.start()
-
 
     def update_utility(self, u):
         self.utility = u
@@ -215,53 +210,55 @@ class Game_GUI:
 
 
 class Piece:
-  selected = -1
-  mouseX = -1
-  mouseY = -1
-  def __init__(self, type,x ,y, num):
-      self.location =  Vector(x,y)
-      self.velocity =  Vector(0,0)
-      self.top_speed = 2000
-      self.type = type
-      self.num = num
+    selected = -1
+    mouseX = -1
+    mouseY = -1
 
-  def update(self, canvas):
-    if Piece.mouseX != -1:
-        x = self.mouseX
-        y = self.mouseY
-        mouse = Vector(x,y)
-        mouse.sub(self.location)
-        if  mouse.magnitude() > 3:
-            mouse.normalize()
-            mouse.mul_scalar(10)
-            acceleration = mouse
-            self.location.add(acceleration)
-            self.velocity.limit(self.top_speed)
-            self.location.add(self.velocity)
+    def __init__(self, piece_type, x, y, num):
+        self.location = Vector(x, y)
+        self.velocity = Vector(0, 0)
+        self.top_speed = 2000
+        self.type = piece_type
+        self.num = num
+
+    def update(self, canvas):
+        if Piece.mouseX != -1:
+            x = self.mouseX
+            y = self.mouseY
+            mouse = Vector(x, y)
+            mouse.sub(self.location)
+            if mouse.magnitude() > 3:
+                mouse.normalize()
+                mouse.mul_scalar(10)
+                acceleration = mouse
+                self.location.add(acceleration)
+                self.velocity.limit(self.top_speed)
+                self.location.add(self.velocity)
+            else:
+                Piece.selected = -1
+                self.location.x = x
+                self.location.y = y
+                Piece.mouseX = -1
+                game_gui.recalc_pieces()
+
+            self.display(canvas)
+
+    def display(self, canvas):
+
+        black = 255
+        black = '#' + ('0' + hex(black)[-1] if black < 16
+                       else hex(black)[-2:]) * 3
+
+        if self.num != Piece.selected:
+            canvas.draw_polygon(self.location.to_coordinates(), 1,
+                                piece_color[self.type], piece_color[self.type])
         else:
-            Piece.selected = -1
-            self.location.x = x
-            self.location.y = y
-            Piece.mouseX = -1
-            game_gui.recalc_pieces()
-
-        self.display(canvas)
-
-
-  def display(self,canvas):
-
-      black = 255
-      black = '#' + ('0' + hex(black)[-1] if black < 16
-                     else hex(black)[-2:]) * 3
-
-      if self.num != Piece.selected:
-          canvas.draw_polygon(self.location.to_coordinates(), 1, piece_color[self.type], piece_color[self.type])
-      else:
-          color = 1
-          color = '#' + ('0' + hex(color)[-1] if color < 16
-                         else hex(color)[-2:]) * 3
-          canvas.draw_polygon(self.location.to_coordinates(), 10,  color, piece_color[self.type])
-      canvas.draw_text(self.type, self.location.to_tuple(40,50), 20,black)
+            color = 1
+            color = '#' + ('0' + hex(color)[-1] if color < 16
+                           else hex(color)[-2:]) * 3
+            canvas.draw_polygon(self.location.to_coordinates(), 10, color,
+                                piece_color[self.type])
+        canvas.draw_text(self.type, self.location.to_tuple(40, 50), 20, black)
 
 
 def draw_empty_board(canvas):
@@ -275,16 +272,17 @@ def draw_empty_board(canvas):
 
     for i in range(BOARD_NUM_RANKS):
         for j in range(BOARD_NUM_FILES):
-            tile_i = tile_index(chr(i+65)+str(j+1))
+            tile_i = tile_index(chr(i + 65) + str(j + 1))
             x, y = number_to_coordinate(tile_i)
-            canvas.draw_polygon(point_to_rec_coords((x, y)), 1, black, color)
+            canvas.draw_polygon(point_to_rec_coordinates((x, y)), 1, black,
+                                color)
 
 
 def mouse_pressed(mouse):
     if Piece.mouseX == -1 and not game_gui.terminal:
         state = game_gui.state
         expanded_state = game_gui.expanded_state
-        num = get_rect_from_coordinates(mouse[0],mouse[1])
+        num = get_rect_from_coordinates(mouse[0], mouse[1])
         if player_turn_gui[player_turn(state)] == 'H':
             if Piece.selected == -1 and expanded_state[num] != '.':
                 Piece.selected = num
@@ -293,9 +291,11 @@ def mouse_pressed(mouse):
 
             elif Piece.selected != -1:
                 selected = Piece.selected
-                if selected != num and (selected, num) in all_valid_moves(state, expanded_state):
-                    game_gui.add_move((selected , num))
-                    move_piece(game_gui.state, game_gui.expanded_state, selected , num)
+                if selected != num and (selected, num) in \
+                        all_valid_moves(state, expanded_state):
+                    game_gui.add_move((selected, num))
+                    move_piece(game_gui.state, game_gui.expanded_state,
+                               selected, num)
                     Piece.mouseX, Piece.mouseY = number_to_coordinate(num)
                     Piece.selected = num
                     game_gui.pieces[num] = game_gui.pieces[selected]
@@ -315,20 +315,25 @@ def draw(canvas):
     :param canvas: simplegui.Canvas
     """
     if not game_gui.paused:
-        if not game_gui.terminal :
-            if Piece.selected == -1 and player_turn_gui[player_turn(game_gui.state)] == 'A':
-                ai_move, time, utility = m.next_move(game_gui.state, game_gui.expanded_state, False,
-                                    game_gui.evaluate, game_gui.search, game_gui.max_depth)
+        if not game_gui.terminal:
+            if Piece.selected == -1 and player_turn_gui[
+                    player_turn(game_gui.state)] == 'A':
+                ai_move, time, utility = \
+                    Main.next_move(game_gui.state, game_gui.expanded_state,
+                                   False, game_gui.evaluate, game_gui.search,
+                                   game_gui.max_depth)
                 game_gui.update_utility(utility)
                 game_gui.update_time(time)
                 game_gui.add_move(ai_move)
-                move_piece(game_gui.state, game_gui.expanded_state, ai_move[0], ai_move[1])
+                move_piece(game_gui.state, game_gui.expanded_state, ai_move[0],
+                           ai_move[1])
                 Piece.mouseX, Piece.mouseY = number_to_coordinate(ai_move[1])
                 Piece.selected = ai_move[1]
                 game_gui.pieces[ai_move[1]] = game_gui.pieces[ai_move[0]]
                 game_gui.pieces[ai_move[1]].num = ai_move[1]
                 del game_gui.pieces[ai_move[0]]
-                terminal, utility = is_terminal(game_gui.state, game_gui.expanded_state)
+                terminal, utility = is_terminal(game_gui.state,
+                                                game_gui.expanded_state)
                 game_gui.terminal = terminal
                 game_gui.utility = utility
 
@@ -346,5 +351,4 @@ def draw(canvas):
             text = "KING WON"
         elif game_gui.utility == DRAGON_WIN:
             text = "DRAGON WON"
-        canvas.draw_text(text, (50,250), 30, "#000000")
-
+        canvas.draw_text(text, (50, 250), 30, "#000000")

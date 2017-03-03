@@ -220,9 +220,9 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
                 break
             move_number += 1
     else:
-        from gui_better import Game_GUI
-        Game_GUI(evaluate, search, max_depth, player_1_is_human,
-                 player_2_is_human)
+        from gui_better import GameGUI
+        GameGUI(evaluate, search, max_depth, player_1_is_human,
+                player_2_is_human)
 
 
 def play_single_player(evaluate, search, max_depth, gui_mode=False):
