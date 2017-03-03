@@ -6,7 +6,6 @@ from evaluations import simple_eval, split_weight_eval
 from utils import record_move_data
 from search import iterative_deepening_search
 from TranspositionTable import TranspositionTable
-from gui_better import *
 
 defaults = {
     'eval': {
@@ -63,10 +62,11 @@ def setup_game():
 
 def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
     """
-    Returns (<move>, <time>), where <move> is the next move to be played for
-    this ply, either from a human or else from the AI, and <time> is the time
-    taken by the AI to decide on the move, or else None if the move was made by
-    a human.
+    Returns (<move>, <time>, <utility>), where <move> is the next move to be
+    played for this ply, either from a human or else from the AI, <time> is the
+    time taken by the AI to decide on the move, and <utility> is the utility of
+    the move. <move> and <utility> will both be None if the move was made by a
+    human.
 
     :param state: a compact state representation
     :type state: array of bytes
@@ -87,8 +87,8 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
                    int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
-    :return: a valid move as a (<from-tile-index>, <to-tile-index>) pair
-    :rtype: ((byte, byte), float)
+    :return: (<move>, <time>, <utility>)
+    :rtype: ((byte, byte), float, float)
     """
     if from_human:
         return get_player_move(state, expanded_state), None, None
@@ -128,7 +128,7 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
 
 
 def play_ply(state, expanded_state, for_human, pause_for, move_number,
-             evaluate, search, max_depth, gui_mode = False):
+             evaluate, search, max_depth):
     """
     Executes a full game ply either for a human player or for the AI. Returns
     True iff the game has reached a terminal state as a result of the ply.
@@ -163,8 +163,8 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
     """
 
     draw_board(state, move_number)
-    move, time, _ = next_move(state, expanded_state, for_human, evaluate, search,
-                           max_depth)
+    move, time, _ = next_move(state, expanded_state, for_human, evaluate,
+                              search, max_depth)
     if time is not None:  # Move was made by the AI.
         record_move_data(search, evaluate, max_depth, move_number,
                          player_turn(state), time)
@@ -180,7 +180,7 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
 
 
 def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
-         pause_for=0, gui = False):
+         pause_for=0, gui_mode=False):
     """
     A game loop that has either a human player or the AI playing interactively
     against another human or the AI itself. Recall that player 2 plays first!
@@ -206,9 +206,11 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
         from the human player or the AI before actually making the move;
         defaults to 0
     :type pause_for: int or float
+    :param gui_mode: should the game be played in gui mode? defaults to False
+    :type gui_mode: bool
     """
     move_number, state, expanded_state = setup_game()
-    if not gui:
+    if not gui_mode:
         while True:
             if play_ply(state, expanded_state, player_2_is_human, pause_for,
                         move_number, evaluate, search, max_depth):
@@ -218,10 +220,12 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
                 break
             move_number += 1
     else:
-        Game_GUI(evaluate, search, max_depth, player_1_is_human, player_2_is_human)
+        from gui_better import Game_GUI
+        Game_GUI(evaluate, search, max_depth, player_1_is_human,
+                 player_2_is_human)
 
 
-def play_single_player(evaluate, search, max_depth, gui_mode = False):
+def play_single_player(evaluate, search, max_depth, gui_mode=False):
     """
     A game loop that has a human player playing interactively against the AI.
 
@@ -238,6 +242,8 @@ def play_single_player(evaluate, search, max_depth, gui_mode = False):
                    int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
+    :param gui_mode: should the game be played in gui mode? defaults to False
+    :type gui_mode: bool
     """
     while True:
         player_choice = input("King or Dragon Player? [k/d] ")
@@ -250,10 +256,10 @@ def play_single_player(evaluate, search, max_depth, gui_mode = False):
     else:
         print("You're the King Player, so you play second!")
     play(player_choice == "d", player_choice != "d", evaluate, search,
-         max_depth, gui=gui_mode)
+         max_depth, gui_mode=gui_mode)
 
 
-def play_two_player(evaluate, search, max_depth, gui_mode = False):
+def play_two_player(evaluate, search, max_depth, gui_mode=False):
     """
     A game loop that has a two human players playing against each other.
 
@@ -270,12 +276,14 @@ def play_two_player(evaluate, search, max_depth, gui_mode = False):
                    int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
+    :param gui_mode: should the game be played in gui mode? defaults to False
+    :type gui_mode: bool
     """
     print('')
-    play(True, True, evaluate, search, max_depth, gui=gui_mode)
+    play(True, True, evaluate, search, max_depth, gui_mode=gui_mode)
 
 
-def play_ai_only(evaluate, search, max_depth, gui_mode = False):
+def play_ai_only(evaluate, search, max_depth, gui_mode=False):
     """
     A game loop that has the AI playing against itself, and displaying the
     game to onlookers.
@@ -293,6 +301,8 @@ def play_ai_only(evaluate, search, max_depth, gui_mode = False):
                    int) => (numeric, (byte, byte))
     :param max_depth: the maximum search depth; must be at least 1
     :type max_depth: int
+    :param gui_mode: should the game be played in gui mode? defaults to False
+    :type gui_mode: bool
     """
     while True:
         pause_for = input("How long to pause between moves? [non-negative] ")
@@ -305,7 +315,7 @@ def play_ai_only(evaluate, search, max_depth, gui_mode = False):
         except ValueError:
             print("Invalid duration: '" + pause_for + "'")
     print('')
-    play(False, False, evaluate, search, max_depth, pause_for, gui=gui_mode)
+    play(False, False, evaluate, search, max_depth, pause_for, gui_mode)
 
 
 def parse_positive_int(value):
