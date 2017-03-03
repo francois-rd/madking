@@ -6,9 +6,9 @@ from 0 to 24, where the number of the tile is the same as a units index.
 """
 BOARD_CONTROL = \
     [ 1, 2, 2, 2, 1, \
-      2, 3, 3, 3, 2, \
-      2, 3, 4, 3, 2, \
-      2, 3, 3, 3, 2, \
+      3, 3, 3, 3, 3, \
+      4, 3, 4, 3, 4, \
+      3, 3, 3, 3, 3, \
       1, 2, 2, 2, 1 ]
 
 def simple_eval(state, expanded_state):
