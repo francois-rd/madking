@@ -180,7 +180,7 @@ def play_ply(state, expanded_state, for_human, pause_for, move_number,
 
 
 def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
-         pause_for=0, gui = True):
+         pause_for=0, gui = False):
     """
     A game loop that has either a human player or the AI playing interactively
     against another human or the AI itself. Recall that player 2 plays first!
@@ -250,7 +250,7 @@ def play_single_player(evaluate, search, max_depth, gui_mode = False):
     else:
         print("You're the King Player, so you play second!")
     play(player_choice == "d", player_choice != "d", evaluate, search,
-         max_depth, gui_mode)
+         max_depth, gui=gui_mode)
 
 
 def play_two_player(evaluate, search, max_depth, gui_mode = False):
@@ -272,7 +272,7 @@ def play_two_player(evaluate, search, max_depth, gui_mode = False):
     :type max_depth: int
     """
     print('')
-    play(True, True, evaluate, search, max_depth, gui_mode)
+    play(True, True, evaluate, search, max_depth, gui=gui_mode)
 
 
 def play_ai_only(evaluate, search, max_depth, gui_mode = False):
@@ -305,7 +305,7 @@ def play_ai_only(evaluate, search, max_depth, gui_mode = False):
         except ValueError:
             print("Invalid duration: '" + pause_for + "'")
     print('')
-    play(False, False, evaluate, search, max_depth, pause_for, gui_mode)
+    play(False, False, evaluate, search, max_depth, pause_for, gui=gui_mode)
 
 
 def parse_positive_int(value):

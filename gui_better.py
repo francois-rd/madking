@@ -301,6 +301,10 @@ def mouse_pressed(mouse):
                     game_gui.pieces[num] = game_gui.pieces[selected]
                     game_gui.pieces[num].num = num
                     del game_gui.pieces[selected]
+                    terminal, utility = is_terminal(game_gui.state,
+                                                    game_gui.expanded_state)
+                    game_gui.terminal = terminal
+                    game_gui.utility = utility
                 else:
                     Piece.selected = -1
 
