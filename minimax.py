@@ -569,7 +569,7 @@ def quiescence_search(state, expanded_state, evaluate):
     """
     utilities = []
     for new_state, new_expanded_state, _ in \
-            successors_capture_only(state, expanded_state):  # TODO: bug! This is an ORDERED successor function!
+            successors_capture_only(state, expanded_state):
         is_term, utility = is_terminal(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility) 
@@ -605,7 +605,7 @@ def quiescence_search_ordered(state, expanded_state, evaluate):
     """
     utilities = []
     for new_state, new_expanded_state, _ in \
-            successors_capture_only(state, expanded_state):
+            successors_capture_only_ordered(state, expanded_state):
         is_term, utility = is_terminal_ordered(new_state, new_expanded_state)
         if is_term:
             utilities.append(utility)
