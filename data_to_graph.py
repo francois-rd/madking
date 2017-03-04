@@ -12,12 +12,12 @@ keys_list = ["search","evaluate","max_depth","move_number","player","time",
 import matplotlib.pyplot as plt
 
 
-
 def _cond_check(condition, data_value):
     for i in condition:
         if i != "label" and condition[i] != data_value[i]:
             return False
     return True
+
 
 def _get_data_dict_from_cond(condition,  data):
     return [x for x in data if _cond_check(condition, x)]
@@ -35,10 +35,11 @@ def plot_conditions(conditions, plot_of, data, title, x_axix, y_axis):
      {"A":3,"B":"alpha-beta","C":100} ]
      plot_of would "A"
      conditions:
-     [{"B":"mini-max"}, {"C":200}]
+     [{"B":"mini-max", "label":"MINIMAX"}, {"C":200, "label": "C is 200"}]
      Now plot with 2 lines, satisfying conditions, will be plotted.
 
     :param conditions: list of expects all the conditions on dictionary for keys in data.
+            every condition should also have a label, to label that line.
     :param plot_of: what variable do you wanna plot, key of that
     :param data: list of dictionaries, with data
     :param title: What should be the title
