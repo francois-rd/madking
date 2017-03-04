@@ -10,6 +10,84 @@ keys_list = ["search","evaluate","max_depth","move_number","player","time",
              "num_move_ordering_alpha_cutoff",
              "num_move_ordering_beta_cutoff","num_alpha_cutoff","num_beta_cutoff"]
 import matplotlib.pyplot as plt
+
+
+
+def _cond_check(condition, data_value):
+    for i in condition:
+        if i != "label" and condition[i] != data_value[i]:
+            return False
+    return True
+
+def _get_data_dict_from_cond(condition,  data):
+    return [x for x in data if _cond_check(condition, x)]
+
+
+def _get_data_list_from_cond(condition, plot_of, data):
+    return [x[plot_of] for x in data if _cond_check(condition, x)]
+
+
+def plot_conditions(conditions, plot_of, data, title, x_axix, y_axis):
+    """
+    Plots the graph,
+    data is a list of dictionary like
+     [{"A":1, "B":"minimax","C":100 }, {"A":2,"B":"minimax","C":100},
+     {"A":3,"B":"alpha-beta","C":100} ]
+     plot_of would "A"
+     conditions:
+     [{"B":"mini-max"}, {"C":200}]
+     Now plot with 2 lines, satisfying conditions, will be plotted.
+
+    :param conditions: list of expects all the conditions on dictionary for keys in data.
+    :param plot_of: what variable do you wanna plot, key of that
+    :param data: list of dictionaries, with data
+    :param title: What should be the title
+    :param x_axis: What should be the x-axis
+    :param y_axis: What should be the y-axis
+    :return:Nothing
+    """
+
+    plt.xlabel(x_axix)
+    plt.ylabel(y_axis)
+    plt.title(title)
+
+    lines = []
+    for cond in conditions:
+        lines.append( _get_data_list_from_cond(cond, plot_of, data))
+
+    x = [i for i in range(len(lines[0]))]
+
+    lines_plot = []
+    for i in range(len(lines)):
+        l, = plt.plot(x, lines[i], '-', label=conditions[i]["label"])
+        lines_plot.append(l)
+
+    first_legend = plt.legend(handles=lines_plot, loc=1)
+    plt.gca().add_artist(first_legend)
+    plt.show()
+
+
+
+
+c1 = {
+
+    "search": "alpha_beta",
+    "evaluate": "simple_eval",
+    "max_depth": "4",
+    "table_max_size":"1000000",
+    "player":"dragon",
+    "label":"dragon"
+}
+c2 = {
+
+    "search": "alpha_beta",
+    "evaluate": "simple_eval",
+    "max_depth": "4",
+    "table_max_size":"1000000",
+    "player":"king",
+    "label":"king"
+}
+
 data = []
 for f in file:
     d = {}
@@ -23,29 +101,6 @@ for f in file:
     data.append(d)
 
 
-
-fig = plt.figure()
-plt.xlabel('move number')
-plt.ylabel('Time in seconds')
-
-plt.title('Alpha beta depth 4, simple_eval, king time vs dragon time')
-y_king = ([ x['time'] for x in data if (x["search"] == "alpha_beta" and
-         x["evaluate"] == "simple_eval" and int(x["max_depth"]) == 4 and
-         int(x["table_max_size"]) == 1000000 and x["player"] == "king")])
-
-y_dragon = ([ x['time'] for x in data if (x["search"] == "alpha_beta" and
-         x["evaluate"] == "simple_eval" and int(x["max_depth"]) == 4 and
-         int(x["table_max_size"]) == 1000000 and x["player"] == "dragon")])
-
-x = [i for i in range(len(y_king))]
-
-line1,  = plt.plot(x,y_king, '-', label="King")
-line2, = plt.plot(x,y_dragon, '--', label="Dragon")
-first_legend = plt.legend(handles=[line1, line2], loc=1)
-ax = plt.gca().add_artist(first_legend)
-plt.show()
-
-
-
-
-
+plot_conditions([c1, c2], "time", data, title = "Alpha beta depth 4, simple_eval"
+                                                ", king time vs dragon time",
+                x_axix = "Move Number", y_axis = "Time in seconds")
