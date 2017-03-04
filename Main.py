@@ -117,7 +117,7 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
         print("Deciding on a move.", end='', flush=True)
         while thread.is_alive():
             sleep(1)
-            print(".", end='', flush=True)
+            # print(".", end='', flush=True)
         print('', flush=True)
         thread.join()
         (utility, move), time = thread.result()
@@ -212,6 +212,8 @@ def play(player_2_is_human, player_1_is_human, evaluate, search, max_depth,
     move_number, state, expanded_state = setup_game()
     if not gui_mode:
         while True:
+            if move_number == 51:
+                exit()
             if play_ply(state, expanded_state, player_2_is_human, pause_for,
                         move_number, evaluate, search, max_depth):
                 break
@@ -305,9 +307,9 @@ def play_ai_only(evaluate, search, max_depth, gui_mode=False):
     :type gui_mode: bool
     """
     while True:
-        pause_for = input("How long to pause between moves? [non-negative] ")
+        # pause_for = input("How long to pause between moves? [non-negative] ")
         try:
-            pause_for = float(pause_for)
+            pause_for = float(0)
             if pause_for < 0:
                 print("Invalid duration:", pause_for)
             else:
@@ -398,6 +400,7 @@ if __name__ == "__main__":
         print("Welcome to madking!")
         print("We hope you have fun playing 'The Mad King!' game!")
         print('')
+        # mode ='a'
         while True:
             mode = input("Single Player, Two Player, or AI Only Mode? [s/t/a] ")
             if mode in ["s", "t", "a"]:
