@@ -307,14 +307,14 @@ def play_ai_only(evaluate, search, max_depth, gui_mode=False):
     while True:
         pause_for = input("How long to pause between moves? [non-negative] ")
         try:
-            if pause_for < 0:
+            if int(pause_for) < 0:
                 print("Invalid duration:", pause_for)
             else:
                 break
         except (ValueError, TypeError):
             print("Invalid duration: '" + pause_for + "'")
     print('')
-    play(False, False, evaluate, search, max_depth, pause_for, gui_mode)
+    play(False, False, evaluate, search, max_depth, int(pause_for), gui_mode)
 
 
 def parse_positive_int(value):
