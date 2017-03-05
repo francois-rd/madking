@@ -93,3 +93,6 @@ ENV/
 
 # Generated JSON files for project
 *.json
+
+# R-studio
+.Rproj.user
