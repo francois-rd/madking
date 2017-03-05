@@ -305,7 +305,7 @@ def play_ai_only(evaluate, search, max_depth, gui_mode=False):
     :type gui_mode: bool
     """
     while True:
-        pause_for = input("How long to pause between moves? [non-negative] ")
+        pause_for = int(input("How long to pause between moves? [non-negative] "))
         try:
             if pause_for < 0:
                 print("Invalid duration:", pause_for)
