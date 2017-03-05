@@ -117,7 +117,7 @@ def next_move(state, expanded_state, from_human, evaluate, search, max_depth):
         print("Deciding on a move.", end='', flush=True)
         while thread.is_alive():
             sleep(1)
-            # print(".", end='', flush=True)
+            print(".", end='', flush=True)
         print('', flush=True)
         thread.join()
         (utility, move), time = thread.result()
@@ -305,13 +305,13 @@ def play_ai_only(evaluate, search, max_depth, gui_mode=False):
     :type gui_mode: bool
     """
     while True:
-        pause_for = int(input("How long to pause between moves? [non-negative] "))
+        pause_for = input("How long to pause between moves? [non-negative] ")
         try:
             if pause_for < 0:
                 print("Invalid duration:", pause_for)
             else:
                 break
-        except ValueError:
+        except (ValueError, TypeError):
             print("Invalid duration: '" + pause_for + "'")
     print('')
     play(False, False, evaluate, search, max_depth, pause_for, gui_mode)
