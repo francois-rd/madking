@@ -70,24 +70,24 @@ def plot_conditions(conditions, plot_of, data, title, x_axix, y_axis):
 
 
 
-c1 = {
-
-    "search": "alpha_beta",
-    "evaluate": "simple_eval",
-    "max_depth": "4",
-    "table_max_size":"1000000",
-    "player":"dragon",
-    "label":"dragon"
-}
-c2 = {
-
-    "search": "alpha_beta",
-    "evaluate": "simple_eval",
-    "max_depth": "4",
-    "table_max_size":"1000000",
-    "player":"king",
-    "label":"king"
-}
+# c1 = {
+#
+#     "search": "alpha_beta",
+#     "evaluate": "simple_eval",
+#     "max_depth": "4",
+#     "table_max_size":"1000000",
+#     "player":"dragon",
+#     "label":"dragon"
+# }
+# c2 = {
+#
+#     "search": "alpha_beta",
+#     "evaluate": "simple_eval",
+#     "max_depth": "4",
+#     "table_max_size":"1000000",
+#     "player":"king",
+#     "label":"king"
+# }
 
 data = []
 for f in file:
@@ -101,7 +101,53 @@ for f in file:
         i += 1
     data.append(d)
 
+c1 = {
 
-plot_conditions([c1, c2], "time", data, title = "Alpha beta depth 4, simple_eval"
-                                                ", king time vs dragon time",
-                x_axix = "Move Number", y_axis = "Time in seconds")
+    "search": "alpha_beta",
+    "evaluate": "split_weight_eval",
+    "table_max_size":"1000000"
+}
+
+
+new_data = []
+for i in range(1,8):
+    c1["max_depth"] = str(i)
+    d  = _get_data_dict_from_cond(c1, data)
+    new_data.append({"search": "alpha_beta", "player": "dragon",
+                     "time": sum([float(x['time']) for x in d if
+                                  x["player"] == "dragon"]) / len(d)})
+    new_data.append({"search": "alpha_beta", "player": "king",
+                     "time": sum([float(x['time']) for x in d if
+                                  x["player"] == "king"]) / len(d)})
+
+c1 = {
+
+    "search": "minimax",
+    "evaluate": "split_weight_eval",
+    "table_max_size":"1000000"
+}
+
+
+for i in range(1,7):
+    c1["max_depth"] = str(i)
+    d = _get_data_dict_from_cond(c1, data)
+    new_data.append({"search": "minimax","player":"dragon",
+                     "time": sum([float(x['time']) for x in d if x["player"] == "dragon"]) / len(d)})
+    new_data.append({"search": "minimax", "player": "king",
+                     "time": sum([float(x['time']) for x in d if
+                                  x["player"] == "king"]) / len(d)})
+
+
+
+print(new_data)
+
+plot_conditions([{ "search": "alpha_beta","label": "Dragon player", "player":"dragon"}, { "search": "alpha_beta","label": "King Player", "player":"king"}]
+                , "time", new_data,
+                title="Alphabeta Dragon move time vs King move time" ,x_axix="Depth limit",
+                y_axis="Time per move in seconds")
+
+
+
+# plot_conditions([c1, c2], "time", data, title="Alpha beta depth 4, simple_eval"
+#                                                 ", king time vs dragon time",
+#                 x_axix="Move Number", y_axis="Time in seconds")
