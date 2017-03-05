@@ -306,10 +306,10 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             return score, value[MOVE_INDEX]  # Is fail-hard because of EXACT.
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
-        alpha = max(alpha, score)
+            alpha = max(alpha, score)
         if flags == BETA_CUTOFF:
             num_usable_hits_beta += 1
-        beta = min(beta, score)
+            beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
             return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
@@ -473,10 +473,10 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
             return score, value[MOVE_INDEX]  # Is fail-hard because of EXACT.
         if flags == ALPHA_CUTOFF:
             num_usable_hits_alpha += 1
-        alpha = max(alpha, score)
+            alpha = max(alpha, score)
         if flags == BETA_CUTOFF:
             num_usable_hits_beta += 1
-        beta = min(beta, score)
+            beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
             return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
