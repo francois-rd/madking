@@ -312,7 +312,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
             beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
+            return score, value[MOVE_INDEX]
     is_term, utility = is_terminal(state, expanded_state)
     if is_term:
         num_term += 1
@@ -415,7 +415,7 @@ def alpha_beta(state, expanded_state, evaluate, remaining_depth,
         else:
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
-    return utility, best_move  # TODO: fail-hard or fail-soft here?
+    return utility, best_move
 
 
 def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
@@ -479,7 +479,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
             beta = min(beta, score)
         if alpha >= beta:
             num_usable_hits_pruning += 1
-            return score, value[MOVE_INDEX]  # TODO: fail-hard or fail-soft here?
+            return score, value[MOVE_INDEX]
     is_term, utility = is_terminal_ordered(state, expanded_state)
     if is_term:
         num_term += 1
@@ -586,7 +586,7 @@ def alpha_beta_ordered(state, expanded_state, evaluate, remaining_depth,
         else:
             flag = EXACT
         _table[hash_string] = (remaining_depth, utility, best_move, flag)
-    return utility, best_move  # TODO: fail-hard or fail-soft here?
+    return utility, best_move
 
 
 def quiescence_search(state, expanded_state, evaluate):

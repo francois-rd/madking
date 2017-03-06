@@ -1379,7 +1379,6 @@ def is_terminal_ordered(state, expanded_state):
                     has_moves = True
                     break
             if not has_moves:  # There are no possible guard moves either.
-                # mark_as_winning_state(state)  # TODO: so rename to mark_as_terminal_state()?
                 return True, DRAW  # It's a draw, NOT a win for dragon player.
     else:  # It's the dragon player's turn, and the king is not captured, and
         # the king player has not won, then it's a draw iff the dragon player
@@ -1391,7 +1390,6 @@ def is_terminal_ordered(state, expanded_state):
                 has_moves = True
                 break
         if not has_moves:  # There are no possible moves for the dragon player.
-            # mark_as_winning_state(state)  # TODO: so rename to mark_as_terminal_state()?
             return True, DRAW  # It's a draw, NOT a win for the king player.
     return False, 0
 
@@ -1586,7 +1584,6 @@ def is_terminal(state, expanded_state):
                     has_moves = True
                     break
             if not has_moves:  # There are no possible guard moves either.
-                # mark_as_winning_state(state) # TODO: so rename to mark_as_terminal_state()?
                 return True, DRAW  # It's a draw, NOT a win for dragon player.
     else:  # It's the dragon player's turn, and the king is not captured, and
         # the king player has not won, then it's a draw iff the dragon player
@@ -1597,7 +1594,6 @@ def is_terminal(state, expanded_state):
                 has_moves = True
                 break
         if not has_moves:  # There are no possible moves for the dragon player.
-            # mark_as_winning_state(state) # TODO: so rename to mark_as_terminal_state()?
             return True, DRAW  # It's a draw, NOT a win for the king player.
     return False, 0
 
