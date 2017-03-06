@@ -76,7 +76,6 @@ def get_king_features(state, expanded_state):
         KING progress,
         KING controlled tiles,
         threatened DRAGONS by GUARD and KING,
-        KING risk level,
         threatened GUARDS by DRAGONS,
         board control of GUARDS and KING.
     Each feature is multiplied by a specific weight. The return value is the
@@ -115,9 +114,8 @@ def get_dragon_features(state, expanded_state):
         DRAGONS alive,
         DRAGON controlled tiles,
         threatened DRAGONS by GUARD and KING,
-        KING risk level,
         threatened GUARDS by DRAGONS,
-        board control by DRAGONS
+        board control by DRAGONS.
     Each feature is multiplied by a specific weight. The return value is the
     sum of each feature times its weight.
 
